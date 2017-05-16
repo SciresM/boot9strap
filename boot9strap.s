@@ -160,10 +160,14 @@ ldmfd sp!, {r0-r6, pc}   ; Return to bootrom lockout
 ;             Loads an entrypoint that arm9 payload will write.
 .org (code_11_load_addr+0x200)
 
-ldr r7, =0x1fffff00
+ldr r7, =0x1ffff000
+
 mcr p15, 0, r0, c0, c0, 5   ; read CPU ID
+and r0, #3
 cmp r0, #0
-bne _core1_stub
+bne copy_core1_stub_and_jump
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ldr r0, =core1_waiting      ; core0 should wait for core1 to be waiting for an interrupt
 _wait_for_core1_loop:
@@ -171,15 +175,36 @@ _wait_for_core1_loop:
     cmp r1, #0
     beq _wait_for_core1_loop
 
+add r0, r7, #0xc00
+adr r1, _core0_stub
+mov r2, #(_core1_stub - _core0_stub)
+bl memcpy32
+
+add r0, r7, #0xc00
+bx r0
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+copy_core1_stub_and_jump:
+
+add r0, r7, #0xe00
+adr r1, _core1_stub
+mov r2, #(memcpy32 - _core1_stub)
+bl memcpy32
+
+add r0, r7, #0xe00
+bx r0
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 _core0_stub:
 
 mov r1, #0
-str r1, [r7, #0xfc]     ; zero out core0's entrypoint
+str r1, [r7, #0xffc]        ; zero out core0's entrypoint
 
 _wait_for_core0_entrypoint_loop:
-    ldr r1, [r7, #0xfc] ; check if core0's entrypoint is 0
+    ldr r1, [r7, #0xffc]    ; check if core0's entrypoint is 0
     cmp r1, #0
     beq _wait_for_core0_entrypoint_loop
 
@@ -203,15 +228,28 @@ str r1, [r4, #0x280]        ; clear all pending private interrupts
 str r0, [r5]
 
 _wfi_core1_loop:
-    .dw 0xE320F003          ; Wait for Interrupt
+    .dw 0xE320F003          ; Wait for Interrupts
     ldr r3, [r4, #0x280]    ; Read the pending interrupts
-    tst r0, #(1 << 1)       ; Wait for SGI n (n = 1). This is raised in void _arm11_entry_main(u32 cpuNum)
+    tst r0, #(1 << 1)       ; Wait for SGI n (n = 1) 
     beq _wfi_core1_loop
 
-ldr lr, [r7, #0xdc]
+ldr lr, [r7, #0xfdc]
 bx lr                       ; jump to core1 entrypoint
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+memcpy32:
+
+add r2, r1
+
+_copy_loop:
+    ldr r3, [r1], #4
+    str r3, [r0], #4
+    cmp r1, r2
+    blo _copy_loop
+
+bx lr
+
 
 .pool
 core1_waiting: .word 0
