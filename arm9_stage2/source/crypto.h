@@ -106,4 +106,3 @@
 
 void ctrNandInit(void);
 int ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf);
-void restoreShaHashBackup(void);

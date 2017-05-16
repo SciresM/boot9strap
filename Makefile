@@ -8,5 +8,5 @@ boot9strap:
 
 
 clean:
-	rm -f out/*
+	rm -rf out
 	cd arm9_stage2 && $(MAKE) clean

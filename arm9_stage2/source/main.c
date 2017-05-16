@@ -20,11 +20,7 @@ static void loadFirm(bool isNand)
     if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE) != 0)
     {
         const char *argv[1];
-        if(isNand)
-        {
-            argv[0] = "1:/boot.firm";
-            restoreShaHashBackup();
-        }
+        if(isNand) argv[0] = "1:/boot.firm";
         else argv[0] = "0:/boot.firm";
         
         launchFirm(firm, 1, (char **)argv);

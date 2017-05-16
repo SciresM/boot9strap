@@ -293,15 +293,12 @@ static void sha(void *res, const void *src, u32 size, u32 mode)
 
 /*****************************************************************/
 
-__attribute__((aligned(4))) static u8 nandCtr[AES_BLOCK_SIZE],
-                                      shaHashBackup[SHA_256_HASH_SIZE];
+__attribute__((aligned(4))) static u8 nandCtr[AES_BLOCK_SIZE];
 static u8 nandSlot;
 static u32 fatStart;
 
 void ctrNandInit(void)
 {
-    memcpy(shaHashBackup, (void *)REG_SHA_HASH, sizeof(shaHashBackup));
-
     __attribute__((aligned(4))) u8 cid[AES_BLOCK_SIZE],
                                    shaSum[SHA_256_HASH_SIZE];
 
@@ -338,9 +335,4 @@ int ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf)
     aes(outbuf, outbuf, sectorCount * 0x200 / AES_BLOCK_SIZE, tmpCtr, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
 
     return result;
-}
-
-void restoreShaHashBackup(void)
-{
-    memcpy((void *)REG_SHA_HASH, shaHashBackup, sizeof(shaHashBackup));
 }

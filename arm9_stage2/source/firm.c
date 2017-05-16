@@ -36,7 +36,7 @@ static bool checkFirm(Firm *firm)
     if(firm->arm9Entry == NULL || firm->arm11Entry == NULL)
         return false;
 
-    bool arm9EpFound = false, arm11EpFound = false;
+    bool arm9EpFound = false;
     for(u32 i = 0; i < 4; i++)
     {
         if(firm->section[i].address + firm->section[i].size < firm->section[i].address) //Overflow
@@ -47,14 +47,9 @@ static bool checkFirm(Firm *firm)
 
         if(firm->arm9Entry >= firm->section[i].address && firm->arm9Entry < (firm->section[i].address + firm->section[i].size))
             arm9EpFound = true;
-        if(firm->arm11Entry >= firm->section[i].address && firm->arm11Entry < (firm->section[i].address + firm->section[i].size))
-            arm11EpFound = true;
     }
 
-    if(!arm9EpFound || !arm11EpFound)
-        return false;
-
-    return true;
+    return arm9EpFound; // allow for the arm11 entrypoint to be zero in which case nothing is done on the arm11 side
 }
 
 void launchFirm(Firm *firm, int argc, char **argv)
