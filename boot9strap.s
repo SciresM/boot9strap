@@ -96,6 +96,7 @@ b9_hook_2:
 
 .org 0x080003F0 
 .area 10h
+dabrt_vector:
 ldr pc, [pc, #-0x4]
 .dw dabort_handler
 .dw 0 ; has dabort handler run flag
@@ -204,3 +205,28 @@ core1_waiting: .word 0
 .align 0x200
 
 .Close
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; NDMA section: This generates the NDMA overwrite file.
+
+.create "NDMA.bin",0
+.area 200h
+.dw 0x00000000   ; NDMA Global CNT
+.dw dabrt_vector ; Source Address
+.dw 0x08000028   ; Destination Address
+.dw 0x00000000   ; Unused Total Repeat Length
+.dw 0x00000002   ; Transfer 2 words
+.dw 0x00000000   ; Transfer until completed
+.dw 0x00000000   ; Unused Fill Data
+.dw 0x90010000   ; Start Immediately/Transfer 2 words at a time/Enable
+.endarea
+.align 0x200
+.close
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Data abort section: This is just a single sector causes boot9 to data abort.
+
+.create "dabrt.bin",0
+.area 200h
+.fill 0x200,0xFF
+.endarea
+.close
