@@ -94,6 +94,8 @@ b9_hook_2:
 
 .endarea
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; dabrt_vector: The data abort vector copied over by our NDMA write.
 .org 0x080003F0 
 .area 10h
 dabrt_vector:
@@ -103,13 +105,24 @@ ldr pc, [pc, #-0x4]
 .dw 0
 .endarea
 
-.org 0x08006000
-.area 4000h
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; bootrom_dump_location: This is 0xFFd out, it is where we dump the bootroms.
+
+.org 0x08010000
+.area 20000h
+.fill 0x20000,0xFF
+.endarea
+.align 0x10000
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; stage 2: Load stage 2 payload to 0x080F0000.
+.org 0x080F0000
+.area 10000h
 .incbin "arm9_stage2/out/arm9_stage2.bin"
 .endarea
 .align 0x10000
 
-.Close
+.close
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .create "out/code11.bin",code_11_load_addr
@@ -204,7 +217,7 @@ bx lr                       ; jump to core1 entrypoint
 core1_waiting: .word 0
 .align 0x200
 
-.Close
+.close
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; NDMA section: This generates the NDMA overwrite file.
