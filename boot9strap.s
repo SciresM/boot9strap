@@ -10,7 +10,7 @@ b11_axi_addr equ 0x1FFC0000
 
 code_11_load_addr equ 0x1FF80000
 
-.create "code9.bin",0x08000200
+.create "out/code9.bin",0x08000200
 
 .area 1F0h
 
@@ -112,7 +112,7 @@ ldr pc, [pc, #-0x4]
 .Close
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.create "code11.bin",code_11_load_addr
+.create "out/code11.bin",code_11_load_addr
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; boot11_hook: This code is called by boot11 just before lockout.
 ;              It copies the bootrom to axi_wram, then syncs with
@@ -209,7 +209,7 @@ core1_waiting: .word 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; NDMA section: This generates the NDMA overwrite file.
 
-.create "NDMA.bin",0
+.create "out/NDMA.bin",0
 .area 200h
 .dw 0x00000000   ; NDMA Global CNT
 .dw dabrt_vector ; Source Address
@@ -225,7 +225,7 @@ core1_waiting: .word 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Data abort section: This is just a single sector causes boot9 to data abort.
 
-.create "dabrt.bin",0
+.create "out/dabrt.bin",0
 .area 200h
 .fill 0x200,0xFF
 .endarea
