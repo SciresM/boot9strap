@@ -1,6 +1,18 @@
 .arm.little
 
-.open "raw.bin","code9.bin",0x08000200
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Useful constant addresses.
+
+b9_memcpy equ 0xFFFF03F0
+b9_store_addr equ 0x08010000
+b11_store_addr equ 0x08020000
+b11_axi_addr equ 0x1FFC0000
+
+code_11_load_addr equ 0x1FF80000
+
+.create "code9.bin",0x08000200
+
+.area 1F0h
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Boot9 Data Abort handler: Overwrites two boot9 function pointers, then returns.
@@ -20,13 +32,6 @@ handler_done:
     mov r2, #0x0
     mov r3, #0x0
     subs pc, lr, #0x4   ; Skip the offending dabrt instruction
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Useful constant addresses.
-
-b9_memcpy equ 0xFFFF03F0
-b9_store_addr equ 0x08010000
-b11_store_addr equ 0x08020000
-b11_axi_addr equ 0x1FFC0000
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; b9_hook_1: Wait for boot11 to finish a task, then overwrite a function pointer
@@ -34,14 +39,14 @@ b11_axi_addr equ 0x1FFC0000
 b9_hook_1:
     pwn_b11:
         stmfd sp!, {r0-r6, lr}
-        ldr r0, =0x1FFE802C ; r0 = b11_funcptr_address
-        ldr r1, =0x1FFB2E00 ; r1 = our_boot11_hook
-        str r1, [r0]        ; overwrite value
-        wait_loop:          ; This is actually a ToCToU race condition.
-            ldr r2, [r0]        ; Derefence      
-            cmp r2, r1          ; Has stored value changed?
-            beq wait_loop       ; If not, go back.
-        str r1, [r0]        ; Overwrite final funcptr.
+        ldr r0, =0x1FFE802C        ; r0 = b11_funcptr_address
+        ldr r1, =code_11_load_addr ; r1 = our_boot11_hook
+        str r1, [r0]               ; overwrite value
+        wait_loop:                 ; This is actually a ToCToU race condition.
+            ldr r2, [r0]           ; Derefence      
+            cmp r2, r1             ; Has stored value changed?
+            beq wait_loop          ; If not, go back.
+        str r1, [r0]               ; Overwrite final funcptr.
 
     ; setup_mpu: 
     setup_mpu:
@@ -87,10 +92,21 @@ b9_hook_2:
 
 .pool
 
+.endarea
+
+.org 0x080003F0 
+.area 10h
+ldr pc, [pc, #-0x4]
+.dw dabort_handler
+.dw 0 ; has dabort handler run flag
+b 0x0808FB90
+.endarea
+
+
 .Close
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.open "raw.bin","code11.bin",0x1FFB2E00
+.create "code11.bin",code_11_load_addr
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; boot11_hook: This code is called by boot11 just before lockout.
 ;              It copies the bootrom to axi_wram, then syncs with
@@ -121,6 +137,65 @@ ldmfd sp!, {r0-r6, pc}   ; Return to bootrom lockout
 .pool
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; arm11_stub: Code that runs post-bootrom lockout on the arm11 cores.
+;             Loads an entrypoint that arm9 payload will write.
+.org (code_11_load_addr+0x200)
 
+ldr r7, =0x1fffff00
+mcr p15, 0, r0, c0, c0, 5   ; read CPU ID
+cmp r0, #0
+bne _core1_stub
+
+ldr r0, =core1_waiting      ; core0 should wait for core1 to be waiting for an interrupt
+_wait_for_core1_loop:
+    ldrb r1, [r0]
+    cmp r1, #0
+    beq _wait_for_core1_loop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+_core0_stub:
+
+mov r1, #0
+str r1, [r7, #0xfc]     ; zero out core0's entrypoint
+
+_wait_for_core0_entrypoint_loop:
+    ldr r1, [r7, #0xfc] ; check if core0's entrypoint is 0
+    cmp r1, #0
+    beq _wait_for_core0_entrypoint_loop
+
+bx r1               ; jump to core0 entrypoint
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+_core1_stub:
+
+ldr r3, =0x17e00000
+add r4, r3, #0x1000
+ldr r5, =core1_waiting
+
+mov r0, #1
+str r0, [r3, #0x100]        ; enable interrupts on core 1
+str r0, [r4]                ; enable the distributed interrupt controller
+
+mvn r1, #0
+str r1, [r4, #0x280]        ; clear all pending private interrupts
+
+str r0, [r5]
+
+_wfi_core1_loop:
+    .dw 0xE320F003          ; Wait for Interrupt
+    ldr r3, [r4, #0x280]    ; Read the pending interrupts
+    tst r0, #(1 << 1)       ; Wait for SGI n (n = 1). This is raised in void _arm11_entry_main(u32 cpuNum)
+    beq _wfi_core1_loop
+
+ldr lr, [r7, #0xdc]
+bx lr                       ; jump to core1 entrypoint
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.pool
+core1_waiting: .word 0
+.align 0x200
 
 .Close
