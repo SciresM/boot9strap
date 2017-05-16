@@ -99,9 +99,14 @@ b9_hook_2:
 ldr pc, [pc, #-0x4]
 .dw dabort_handler
 .dw 0 ; has dabort handler run flag
-b 0x0808FB90
+.dw 0
 .endarea
 
+.org 0x08006000
+.area 4000h
+.incbin "arm9_stage2/out/arm9_stage2.bin"
+.endarea
+.align 0x10000
 
 .Close
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

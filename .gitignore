@@ -1,1 +1,6 @@
 *.bin
+arm9_stage2/build*
+arm9_stage2/out*
+*.o
+*.elf
+*.d
