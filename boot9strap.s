@@ -4,11 +4,13 @@
 ; Useful constant addresses.
 
 b9_memcpy equ 0xFFFF03F0
-b9_store_addr equ 0x08010000
-b11_store_addr equ 0x08020000
+b9_store_addr equ 0x08080000
+b11_store_addr equ 0x08090000
 b11_axi_addr equ 0x1FFC0000
 
 code_11_load_addr equ 0x1FF80000
+
+arm9mem_dabrt_loc equ 0x08000028
 
 .create "out/code9.bin",0x08000200
 
@@ -105,18 +107,10 @@ ldr pc, [pc, #-0x4]
 .dw 0
 .endarea
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; bootrom_dump_location: This is 0xFFd out, it is where we dump the bootroms.
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; stage 2: Load stage 2 payload to 0x08010000.
 .org 0x08010000
-.area 20000h
-.fill 0x20000,0xFF
-.endarea
-.align 0x10000
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; stage 2: Load stage 2 payload to 0x080F0000.
-.org 0x080F0000
 .area 10000h
 .incbin "arm9_stage2/out/arm9_stage2.bin"
 .endarea
@@ -216,14 +210,14 @@ bx lr
 
 .create "out/NDMA.bin",0
 .area 200h
-.dw 0x00000000   ; NDMA Global CNT
-.dw dabrt_vector ; Source Address
-.dw 0x08000028   ; Destination Address
-.dw 0x00000000   ; Unused Total Repeat Length
-.dw 0x00000002   ; Transfer 2 words
-.dw 0x00000000   ; Transfer until completed
-.dw 0x00000000   ; Unused Fill Data
-.dw 0x90010000   ; Start Immediately/Transfer 2 words at a time/Enable
+.dw 0x00000000          ; NDMA Global CNT
+.dw dabrt_vector        ; Source Address
+.dw arm9mem_dabrt_loc   ; Destination Address
+.dw 0x00000000          ; Unused Total Repeat Length
+.dw 0x00000002          ; Transfer 2 words
+.dw 0x00000000          ; Transfer until completed
+.dw 0x00000000          ; Unused Fill Data
+.dw 0x90010000          ; Start Immediately/Transfer 2 words at a time/Enable
 .endarea
 .align 0x200
 .close

@@ -14,9 +14,10 @@ def main(argc, argv):
             section_datas.append(f.read())
     with open('out/boot9strap.firm', 'wb') as b9s:
         # Write FIRM header.
-        b9s.write('FIRM')
-        b9s.write(struct.pack('<III', 0x00000000, 0x1FF80200, 0x080F0000))
-        b9s.write('\x00' * 0x30)
+        b9s.write(b'FIRM')
+        # Write (zero), ARM11 Entrypoint, ARM9 Entrypoint
+        b9s.write(struct.pack('<III', 0x00000000, 0x1FF80200, 0x08010000))
+        b9s.write(b'\x00' * 0x30)
         ofs = 0x200
         for i,data in enumerate(section_datas):
             b9s.write(struct.pack('<IIII', ofs, load_addresses[i], len(data), 0x00000002))
@@ -25,6 +26,10 @@ def main(argc, argv):
         b9s.write(binascii.unhexlify(perfect_signature))
         for data in section_datas:
             b9s.write(data)
+    with open('out/boot9strap.firm', 'rb') as f:
+        b9s = f.read()
+    with open('out/boot9strap.firm.sha', 'wb') as f:
+        f.write(binascii.unhexlify(hashlib.sha256(b9s).hexdigest()))
     print ('Successfully built out/boot9strap.firm!')
 
 
