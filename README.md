@@ -4,6 +4,8 @@ Boot9strap
 
 Boot9/Boot11 code execution.
 
+For more details, refer to the presentation [here](https://sciresm.github.io/33-and-a-half-c3/).
+
 **Credits:**
 
 [Normmatt](https://github.com/Normmatt): Theorizing the NDMA overwite exploit.
