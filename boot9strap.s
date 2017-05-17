@@ -160,74 +160,35 @@ ldmfd sp!, {r0-r6, pc}   ; Return to bootrom lockout
 ;             Loads an entrypoint that arm9 payload will write.
 .org (code_11_load_addr+0x200)
 
+; this only runs on core0
+
 .dw 0xf10c01c0              ; mask all interrupts (bootrom only masks IRQs but w/e)
-ldr r7, =0x1ffff000
-
-mcr p15, 0, r0, c0, c0, 5   ; read CPU ID
-and r0, #3
-cmp r0, #0
-bne copy_core1_stub_and_jump
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 copy_core0_stub_and_jump:
 
-add r0, r7, #0xc00
+
+ldr r0, =0x1ffffc00
 adr r1, _core0_stub
-mov r2, #(_core1_stub - _core0_stub)
+mov r2, #(memcpy32 - _core0_stub)
 bl memcpy32
 
-add r0, r7, #0xc00
-bx r0
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-copy_core1_stub_and_jump:
-
-add r0, r7, #0xe00
-adr r1, _core1_stub
-mov r2, #(memcpy32 - _core1_stub)
-bl memcpy32
-
-add r0, r7, #0xe00
+ldr r0, =0x1ffffc00
 bx r0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 _core0_stub:
 
+ldr r0, =0x1ffffffc
 mov r1, #0
-str r1, [r7, #0xffc]        ; zero out core0's entrypoint
+str r1, [r0]        ; zero out core0's entrypoint
 
 _wait_for_core0_entrypoint_loop:
-    ldr r1, [r7, #0xffc]    ; check if core0's entrypoint is 0
+    ldr r1, [r0]    ; check if core0's entrypoint is 0
     cmp r1, #0
     beq _wait_for_core0_entrypoint_loop
 
-bx r1                       ; jump to core0 entrypoint
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-_core1_stub:
-
-ldr r3, =0x17e00000
-add r4, r3, #0x1000
-
-mov r0, #1
-str r0, [r3, #0x100]        ; enable interrupts on core 1
-str r0, [r4]                ; enable the distributed interrupt controller
-
-mvn r1, #0
-str r1, [r4, #0x280]        ; clear all pending private interrupts
-
-_wfi_core1_loop:
-    .dw 0xE320F003          ; wfi: Wait for Interrupts
-    ldr r3, [r4, #0x280]    ; Read the pending interrupts
-    tst r0, #(1 << 1)       ; Wait for private interrupt 1 (SGI1) 
-    beq _wfi_core1_loop
-
-ldr lr, [r7, #0xfdc]
-bx lr                       ; jump to core1 entrypoint
+bx r1               ; jump to core0 entrypoint
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
