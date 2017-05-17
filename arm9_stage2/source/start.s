@@ -30,7 +30,7 @@ _start:
     msr cpsr_cx, r0
 
     @ Change the stack pointer
-    mov sp, #0x23000000
+    ldr sp, =__stack_top__
 
     @ Disable caches / MPU
     mrc p15, 0, r0, c1, c0, 0  @ read control register
@@ -85,9 +85,9 @@ _start:
     str r1, [r0]
 
     @ Clear BSS
-    ldr r0, =__bss_start
+    ldr r0, =__bss_start__
     mov r1, #0
-    ldr r2, =__bss_end
+    ldr r2, =__bss_end__
     sub r2, r0
     bl memset32
 

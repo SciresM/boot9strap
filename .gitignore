@@ -1,4 +1,5 @@
 *.bin
+*.firm
 out/*
 arm9_stage2/build*
 arm9_stage2/out*

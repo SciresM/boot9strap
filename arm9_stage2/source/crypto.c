@@ -205,7 +205,7 @@ static void aes_batch(void *dst, const void *src, u32 blockCount)
     }
 }
 
-static void aes(void *dst, const void *src, u32 blockCount, void *iv, u32 mode, u32 ivMode)
+void aes(void *dst, const void *src, u32 blockCount, void *iv, u32 mode, u32 ivMode)
 {
     *REG_AESCNT =   mode |
                     AES_CNT_INPUT_ORDER | AES_CNT_OUTPUT_ORDER |
@@ -253,7 +253,7 @@ static void sha_wait_idle()
     while(*REG_SHA_CNT & 1);
 }
 
-static void sha(void *res, const void *src, u32 size, u32 mode)
+void sha(void *res, const void *src, u32 size, u32 mode)
 {
     sha_wait_idle();
     *REG_SHA_CNT = mode | SHA_CNT_OUTPUT_ENDIAN | SHA_NORMAL_ROUND;

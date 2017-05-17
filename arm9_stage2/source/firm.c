@@ -22,33 +22,58 @@
 
 #include "firm.h"
 #include "memory.h"
-#include "strings.h"
 #include "cache.h"
+#include "crypto.h"
 
+#define OVERLAP(as, ae, bs, be) (((as) <= (be)) && ((ae) >= (bs)))
+
+extern u32 __start__, __end__, __stack_top__, __stack_bottom__;
 
 static bool checkFirm(Firm *firm)
 {
     //Very basic checks
-    //No blacklist / whitelist
+
     if(memcmp(firm->magic, "FIRM", 4) != 0)
         return false;
 
-    if(firm->arm9Entry == NULL)  // allow for the arm11 entrypoint to be zero in which case nothing is done on the arm11 side
+    if(firm->arm9Entry == NULL)  //allow for the arm11 entrypoint to be zero in which case nothing is done on the arm11 side
         return false;
+
+    u32 size = 0x200;
+    for(u32 i = 0; i < 4; i++)
+        size += firm->section[i].size;
 
     bool arm9EpFound = false, arm11EpFound = false;
     for(u32 i = 0; i < 4; i++)
     {
-        if(firm->section[i].address + firm->section[i].size < firm->section[i].address) //Overflow
+        __attribute__((aligned(4))) u8 hash[0x20];
+
+        FirmSection *section = &firm->section[i];
+
+        if(section->offset < 0x200)
             return false;
 
-        if(((u32)firm->section[i].address & 3) || (firm->section[i].offset & 0x1FF) || (firm->section[i].size & 0x1FF))
+        if(section->address + section->size < section->address) //overflow check
             return false;
 
-        if(firm->arm9Entry >= firm->section[i].address && firm->arm9Entry < (firm->section[i].address + firm->section[i].size))
+        if(((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF)) //alignment check
+            return false;
+
+        if(OVERLAP((u32)section->address, (u32)section->address + section->size, __start__, __end__))
+            return false;
+        else if(OVERLAP((u32)section->address, (u32)section->address + section->size, __stack_bottom__, __stack_top__))
+            return false;
+        else if(OVERLAP((u32)section->address, (u32)section->address + section->size, (u32)firm, (u32)firm + size))
+            return false;
+        
+        sha(hash, (u8 *)firm + section->offset, section->size, SHA_256_MODE);
+        if(memcmp(hash, section->hash, 0x20) != 0)
+            return false;
+
+        if(firm->arm9Entry >= section->address && firm->arm9Entry < (section->address + section->size))
             arm9EpFound = true;
 
-        if(firm->arm11Entry >= firm->section[i].address && firm->arm11Entry < (firm->section[i].address + firm->section[i].size))
+        if(firm->arm11Entry >= section->address && firm->arm11Entry < (section->address + section->size))
             arm11EpFound = true;
     }
 
