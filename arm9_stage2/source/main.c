@@ -20,8 +20,8 @@ static void loadFirm(bool isNand)
     if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE) != 0)
     {
         const char *argv[1];
-        if(isNand) argv[0] = "1:/boot.firm";
-        else argv[0] = "0:/boot.firm";
+        if(isNand) argv[0] = "nand:/boot.firm";
+        else argv[0] = "sdmc:/boot.firm";
         
         launchFirm(firm, 1, (char **)argv);
     }
