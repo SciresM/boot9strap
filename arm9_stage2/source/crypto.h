@@ -42,6 +42,8 @@
 #define REG_AESKEYXFIFO     ((vu32 *)0x10009104)
 #define REG_AESKEYYFIFO     ((vu32 *)0x10009108)
 
+#define REGs_AESTWLKEYS     (*((vu32 (*)[4][3][4])0x10009040))
+
 #define AES_CCM_DECRYPT_MODE    (0u << 27)
 #define AES_CCM_ENCRYPT_MODE    (1u << 27)
 #define AES_CTR_MODE            (2u << 27)
@@ -100,12 +102,21 @@
 #define SHA_224_HASH_SIZE   (224 / 8)
 #define SHA_1_HASH_SIZE     (160 / 8)
 
-#define PDN_MPCORE_CFG (*(vu32 *)0x10140FFC)
+#define CFG_SYSPROT9        (*(vu8  *)0x10000000)
+#define CFG_BOOTENV         (*(vu32 *)0x10010000)
+#define CFG_UNITINFO        (*(vu8  *)0x10010010)
+#define CFG_TWLUNITINFO     (*(vu8  *)0x10010014)
+#define OTP_DEVCONSOLEID    (*(vu64 *)0x10012000)
+#define OTP_TWLCONSOLEID    (*(vu64 *)0x10012100)
+#define PDN_MPCORE_CFG      (*(vu32 *)0x10140FFC)
+#define PDN_SPI_CNT         (*(vu32 *)0x101401C0)
 
 #define ISN3DS (PDN_MPCORE_CFG == 7)
+#define ISDEVUNIT (CFG_UNITINFO != 0)
 
 void sha(void *res, const void *src, u32 size, u32 mode);
 void aes(void *dst, const void *src, u32 blockCount, void *iv, u32 mode, u32 ivMode);
 
 void ctrNandInit(void);
 int ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf);
+void setupKeyslots(void);

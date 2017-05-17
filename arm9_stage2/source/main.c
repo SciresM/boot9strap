@@ -23,6 +23,7 @@ static void loadFirm(bool isNand)
         if(isNand) argv[0] = "nand:/boot.firm";
         else argv[0] = "sdmc:/boot.firm";
         
+        setupKeyslots();
         launchFirm(firm, 1, (char **)argv);
     }
 }
