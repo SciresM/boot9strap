@@ -25,9 +25,15 @@
 #include "cache.h"
 #include "crypto.h"
 
-#define OVERLAP(as, ae, bs, be) (((as) <= (be)) && ((ae) >= (bs)))
-
 extern u32 __start__, __end__, __stack_top__, __stack_bottom__;
+
+static __attribute((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be) {
+    if (as <= bs && bs <= ae)
+        return true;
+    else if (bs <= as && as <= be)
+        return true;
+    return false;
+}
 
 static bool checkFirm(Firm *firm)
 {
@@ -48,7 +54,12 @@ static bool checkFirm(Firm *firm)
     {
         __attribute__((aligned(4))) u8 hash[0x20];
 
+
         FirmSection *section = &firm->section[i];
+
+        // allow empty sections
+        if (section->size == 0)
+            continue;
 
         if(section->offset < 0x200)
             return false;
@@ -59,11 +70,11 @@ static bool checkFirm(Firm *firm)
         if(((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF)) //alignment check
             return false;
 
-        if(OVERLAP((u32)section->address, (u32)section->address + section->size, __start__, __end__))
+        if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)&__start__, (u32)&__end__))
             return false;
-        else if(OVERLAP((u32)section->address, (u32)section->address + section->size, __stack_bottom__, __stack_top__))
+        else if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)&__stack_bottom__, (u32)&__stack_top__))
             return false;
-        else if(OVERLAP((u32)section->address, (u32)section->address + section->size, (u32)firm, (u32)firm + size))
+        else if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)firm, (u32)firm + size))
             return false;
         
         sha(hash, (u8 *)firm + section->offset, section->size, SHA_256_MODE);
