@@ -3,6 +3,7 @@
 */
 
 #include "fs.h"
+#include <string.h>
 #include "fatfs/ff.h"
 
 static FATFS fs;
@@ -35,4 +36,35 @@ u32 fileRead(void *dest, const char *path, u32 maxSize)
     f_close(&file);
 
     return ret;
+}
+
+bool fileWrite(const void *buffer, const char *path, u32 size)
+{
+    FIL file;
+
+    switch(f_open(&file, path, FA_WRITE | FA_OPEN_ALWAYS))
+    {
+        case FR_OK:
+        {
+            unsigned int written;
+            f_write(&file, buffer, size, &written);
+            f_truncate(&file);
+            f_close(&file);
+
+            return (u32)written == size;
+        }
+        case FR_NO_PATH:
+            for(u32 i = 1; path[i] != 0; i++)
+                if(path[i] == '/')
+                {
+                    char folder[i + 1];
+                    memcpy(folder, path, i);
+                    folder[i] = 0;
+                    f_mkdir(folder);
+                }
+
+            return fileWrite(buffer, path, size);
+        default:
+            return false;
+    }
 }

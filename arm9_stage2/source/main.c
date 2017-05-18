@@ -9,8 +9,11 @@
 #include "cache.h"
 #include "fs.h"
 #include "firm.h"
+#include "buttons.h"
 
-#define MAX_FIRM_SIZE 0x40000000
+#define SECRET_BUTTONS (BUTTON_START | BUTTON_SELECT | BUTTON_X)
+
+#define MAX_FIRM_SIZE 0x04000000
 
 static Firm *firm = (Firm *)0x24000000;
 
@@ -32,6 +35,13 @@ void main(void)
 {
     if(mountSd())
     {
+        /* I believe this is the canonical secret key combination. */
+        if ((HID_PAD & SECRET_BUTTONS) == SECRET_BUTTONS) {
+            fileWrite((void *)0x08080000, "boot9strap/boot9.bin", 0x10000);
+            fileWrite((void *)0x08090000, "boot9strap/boot11.bin", 0x10000);
+            fileWrite((void *)0x10012000, "boot9strap/otp.bin", 0x100);
+        }
+        
         loadFirm(false);
         unmountSd();
     }

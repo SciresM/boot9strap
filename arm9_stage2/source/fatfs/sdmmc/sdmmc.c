@@ -203,7 +203,7 @@ static void __attribute__((noinline)) sdmmc_send_command(struct mmcdevice *ctx, 
     }
 }
 
-/*
+
 int __attribute__((noinline)) sdmmc_sdcard_writesectors(u32 sector_no, u32 numsectors, const u8 *in)
 {
     if(handleSD.isSDHC == 0) sector_no <<= 9;
@@ -217,7 +217,7 @@ int __attribute__((noinline)) sdmmc_sdcard_writesectors(u32 sector_no, u32 numse
     sdmmc_send_command(&handleSD, 0x52C19, sector_no);
     return geterror(&handleSD);
 }
-*/
+
 
 int __attribute__((noinline)) sdmmc_sdcard_readsectors(u32 sector_no, u32 numsectors, u8 *out)
 {
