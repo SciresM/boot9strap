@@ -29,7 +29,7 @@ def main(argc, argv):
             b9s.write(data)
     with open('out/boot9strap.firm', 'rb') as f:
         b9s = f.read()
-    b9s_dev = b9s[:0x100] + dev_perfect_signature + b9s[0x200:]
+    b9s_dev = b9s[:0x100] + binascii.unhexlify(dev_perfect_signature) + b9s[0x200:]
     with open('out/boot9strap.firm.sha', 'wb') as f:
         f.write(binascii.unhexlify(hashlib.sha256(b9s).hexdigest()))
     print ('Successfully built out/boot9strap.firm!')
