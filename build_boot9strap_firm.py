@@ -16,9 +16,11 @@ def main(argc, argv):
     with open('out/boot9strap.firm', 'wb') as b9s:
         # Write FIRM header.
         b9s.write(b'FIRM')
-        # Write (zero), ARM11 Entrypoint, ARM9 Entrypoint
+        # Write (zero (boot priority)), ARM11 Entrypoint, ARM9 Entrypoint
         b9s.write(struct.pack('<III', 0x00000000, 0x1FF80200, 0x08010000))
-        b9s.write(b'\x00' * 0x30)
+        b9s.write(b'\x00' * 0x2C)
+        # Write boot9strap magic value
+        b9s.write(b'B9S\x00')
         ofs = 0x200
         for i,data in enumerate(section_datas):
             b9s.write(struct.pack('<IIII', ofs, load_addresses[i], len(data), 0x00000002))
