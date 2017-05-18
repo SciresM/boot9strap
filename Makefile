@@ -1,4 +1,3 @@
-
 all: boot9strap
 
 boot9strap:
@@ -7,7 +6,6 @@ boot9strap:
 	armips boot9strap.s
 	python build_boot9strap_firm.py
 
-
 clean:
-	rm -rf out/*
 	cd arm9_stage2 && $(MAKE) clean
+	rm -rf out

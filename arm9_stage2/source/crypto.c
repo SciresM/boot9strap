@@ -330,9 +330,6 @@ void ctrNandInit(void)
 
     if(ISN3DS)
     {
-        __attribute__((aligned(4))) u8 keyY0x5[AES_BLOCK_SIZE] = {0x4D, 0x80, 0x4F, 0x4E, 0x99, 0x90, 0x19, 0x46, 0x13, 0xA2, 0x04, 0xAC, 0x58, 0x44, 0x60, 0xBE};
-        aes_setkey(0x05, keyY0x5, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
-
         nandSlot = 0x05;
         fatStart = 0x5CAD7;
     }
@@ -376,8 +373,13 @@ static inline void twlConsoleInfoInit(void)
     k1X[3] = (u32)twlConsoleId;
 }
 
-static void set6x7xKeys(void)
+void setupKeyslots(void)
 {
+    //Setup 0x24 KeyY
+    __attribute__((aligned(4))) u8 keyY0x24[AES_BLOCK_SIZE] = {0x74, 0xCA, 0x07, 0x48, 0x84, 0xF4, 0x22, 0x8D, 0xEB, 0x2A, 0x1C, 0xA7, 0x2D, 0x28, 0x77, 0x62};
+    aes_setkey(0x24, keyY0x24, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+
+    //Setup 0x25 KeyX and 0x2F KeyY
     __attribute__((aligned(4))) const u8 keyX0x25s[2][AES_BLOCK_SIZE] = {
         {0xCE, 0xE7, 0xD8, 0xAB, 0x30, 0xC0, 0x0D, 0xAE, 0x85, 0x0E, 0xF5, 0xE3, 0x82, 0xAC, 0x5A, 0xF3},
         {0x81, 0x90, 0x7A, 0x4B, 0x6F, 0x1B, 0x47, 0x32, 0x3A, 0x67, 0x79, 0x74, 0xCE, 0x4A, 0xD7, 0x1B}
@@ -390,26 +392,15 @@ static void set6x7xKeys(void)
     aes_setkey(0x25, keyX0x25s[ISDEVUNIT ? 1 : 0], AES_KEYX, AES_INPUT_BE | AES_INPUT_NORMAL);
     aes_setkey(0x2F, keyY0x2Fs[ISDEVUNIT ? 1 : 0], AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
 
-    /* [3dbrew] The first 0x10-bytes are checked by the v6.0/v7.0 NATIVE_FIRM keyinit function,
-                when non-zero it clears this block and continues to do the key generation.
-                Otherwise when this block was already all-zero, it immediately returns. */
-    memset32((void *)0x01FFCD00, 0, 0x10);
-}
-
-
-
-void setupKeyslots(void)
-{
-    //Setup 0x5, 0x24 KeyY
-    __attribute__((aligned(4))) u8 keyY0x5[AES_BLOCK_SIZE] =  {0x4D, 0x80, 0x4F, 0x4E, 0x99, 0x90, 0x19, 0x46, 0x13, 0xA2, 0x04, 0xAC, 0x58, 0x44, 0x60, 0xBE};
-    __attribute__((aligned(4))) u8 keyY0x24[AES_BLOCK_SIZE] = {0x74, 0xCA, 0x07, 0x48, 0x84, 0xF4, 0x22, 0x8D, 0xEB, 0x2A, 0x1C, 0xA7, 0x2D, 0x28, 0x77, 0x62};
-    if (ISN3DS) 
+    if(ISN3DS) 
     {
+        //Setup 0x05 KeyY
+        __attribute__((aligned(4))) u8 keyY0x5[AES_BLOCK_SIZE] =  {0x4D, 0x80, 0x4F, 0x4E, 0x99, 0x90, 0x19, 0x46, 0x13, 0xA2, 0x04, 0xAC, 0x58, 0x44, 0x60, 0xBE};
         aes_setkey(0x05, keyY0x5,  AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
-        aes_setkey(0x25, keyY0x24, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+
+        //Setup TWL keys
+        twlConsoleInfoInit();
     }
-
-
 
     //Set 0x11 keyslot
     __attribute__((aligned(4))) const u8 key1s[2][AES_BLOCK_SIZE] = {
@@ -427,24 +418,18 @@ void setupKeyslots(void)
         {0xDD, 0xDA, 0xA4, 0xC6, 0x2C, 0xC4, 0x50, 0xE9, 0xDA, 0xB6, 0x9B, 0x0D, 0x9D, 0x2A, 0x21, 0x98}
     },                             decKey[AES_BLOCK_SIZE];
 
-
-    // Initialize Key 0x18    
+    //Initialize Key 0x18    
     aes_setkey(0x11, key1s[ISDEVUNIT ? 1 : 0], AES_KEYNORMAL, AES_INPUT_BE | AES_INPUT_NORMAL);
     aes_use_keyslot(0x11);
     aes(decKey, keyBlocks[0], 1, NULL, AES_ECB_DECRYPT_MODE, 0);
     aes_setkey(0x18, decKey, AES_KEYX, AES_INPUT_BE | AES_INPUT_NORMAL);
 
-    // Initialize Key 0x19-0x1F
-    u8 firstKey = 0x19;
-    u32 keyBlocksIndex = 1;
+    //Initialize Key 0x19-0x1F
     aes_setkey(0x11, key2s[ISDEVUNIT ? 1 : 0], AES_KEYNORMAL, AES_INPUT_BE | AES_INPUT_NORMAL);
     aes_use_keyslot(0x11);
-    for(u8 slot = firstKey; slot < 0x20; slot++, keyBlocks[keyBlocksIndex][0xF]++)
+    for(u8 slot = 0x19; slot < 0x20; slot++, keyBlocks[1][0xF]++)
     {
-        aes(decKey, keyBlocks[keyBlocksIndex], 1, NULL, AES_ECB_DECRYPT_MODE, 0);
+        aes(decKey, keyBlocks[1], 1, NULL, AES_ECB_DECRYPT_MODE, 0);
         aes_setkey(slot, decKey, AES_KEYX, AES_INPUT_BE | AES_INPUT_NORMAL);
     }
-
-    set6x7xKeys();
-    twlConsoleInfoInit();
 }
