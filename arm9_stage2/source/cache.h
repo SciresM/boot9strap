@@ -26,3 +26,6 @@
 
 void flushEntireDCache(void); //actually: "clean and flush"
 void flushEntireICache(void);
+
+void flushDCacheRange(void *startAddress, u32 size);
+void flushICacheRange(void *startAddress, u32 size);
