@@ -36,7 +36,7 @@ static __attribute((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be)
     return false;
 }
 
-static bool checkFirm(Firm *firm)
+bool checkFirm(Firm *firm)
 {
     //Very basic checks
 
@@ -95,9 +95,6 @@ static bool checkFirm(Firm *firm)
 
 void launchFirm(Firm *firm, int argc, char **argv)
 {
-    if(!checkFirm(firm))
-        return;
-
     //Copy FIRM sections to respective memory locations
     for(u32 sectionNum = 0; sectionNum < 4 && firm->section[sectionNum].size != 0; sectionNum++)
         memcpy(firm->section[sectionNum].address, (u8 *)firm + firm->section[sectionNum].offset, firm->section[sectionNum].size);

@@ -159,12 +159,10 @@ ldmfd sp!, {r0-r6, pc}   ; Return to bootrom lockout
 .dw 0xf10c01c0              ; mask all interrupts (bootrom only masks IRQs but w/e)
 
 copy_core0_stub_and_jump:
-
-
-ldr r0, =0x1ffffc00
-adr r1, _core0_stub
-mov r2, #(memcpy32 - _core0_stub)
-bl memcpy32
+    ldr r0, =0x1ffffc00
+    adr r1, _core0_stub
+    mov r2, #(memcpy32 - _core0_stub)
+    bl memcpy32
 
 ldr r0, =0x1ffffc00
 bx r0
@@ -198,7 +196,6 @@ _copy_loop:
 
 bx lr
 
-
 .pool
 
 .align 0x200
@@ -221,6 +218,7 @@ bx lr
 .endarea
 .align 0x200
 .close
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Data abort section: This is just a single sector causes boot9 to data abort.
 
