@@ -10,21 +10,34 @@
 #include "fs.h"
 #include "firm.h"
 #include "buttons.h"
+#include "../build/bundled.h"
 
-#define MAX_FIRM_SIZE 0x04000000
+#define MAX_FIRM_SIZE   0x04000000
+#define A11_PAYLOAD_LOC 0x1FFF4C80 //Keep in mind this needs to be changed in the ld script for arm11 too
+#define A11_ENTRYPOINT  0x1FFFFFFC
 
 static Firm *firm = (Firm *)0x24000000;
 
+static void initScreens(void)
+{
+    memcpy((void *)A11_PAYLOAD_LOC, arm11_bin, arm11_bin_size);
+    *(vu32 *)A11_ENTRYPOINT = A11_PAYLOAD_LOC;
+    while(*(vu32 *)A11_ENTRYPOINT != 0);
+    i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
+}
+
 static void loadFirm(bool isNand)
 {
-    //No-screeninit payload
     if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE) != 0)
     {
-        const char *argv[1];
-        if(isNand) argv[0] = "nand:/boot.firm";
-        else argv[0] = "sdmc:/boot.firm";
+        if(checkFirm(firm))
+        {
+            const char *argv[1];
+            argv[0] = isNand ? "nand:/boot.firm" : "sdmc:/boot.firm";
 
-        launchFirm(firm, 1, (char **)argv);
+            if(firm->reserved2[0] & 1) initScreens();
+            launchFirm(firm, 1, (char **)argv);
+        }
     }
 }
 
