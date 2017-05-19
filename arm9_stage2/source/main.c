@@ -13,7 +13,7 @@
 #include "../build/bundled.h"
 
 #define MAX_FIRM_SIZE   0x04000000
-#define A11_PAYLOAD_LOC 0x1FFF4C80 //Keep in mind this needs to be changed in the ld script for arm11 too
+#define A11_PAYLOAD_LOC 0x1FFFE000 //Keep in mind this needs to be changed in the ld script for arm11 too
 #define A11_ENTRYPOINT  0x1FFFFFFC
 
 static Firm *firm = (Firm *)0x24000000;
@@ -54,7 +54,7 @@ void main(void)
             fileWrite((void *)0x08090000, "boot9strap/boot11.bin", 0x10000);
             fileWrite((void *)0x10012000, "boot9strap/otp.bin", 0x100);
         }
-        
+
         loadFirm(false);
         unmountSd();
     }

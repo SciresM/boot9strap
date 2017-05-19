@@ -4,7 +4,7 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 SECTIONS
 {
-    . = 0x1FFF4C80;
+    . = 0x1FFFE000;
 
     .text   : ALIGN(4) { *(.text.start) *(.text*); . = ALIGN(4); }
     .rodata : ALIGN(4) { *(.rodata*); . = ALIGN(4); }
