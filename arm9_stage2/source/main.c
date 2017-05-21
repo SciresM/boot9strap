@@ -19,6 +19,8 @@
 
 static vu8 *arm11Flags = (vu8 *)0x1FFFFFF0;
 
+static void (*const itcmStub)(Firm *firm, bool isNand) = (void (*const)(Firm *, bool))0x07FF8000;
+
 static void doArm11Stuff(void) // b11 lockout sync and screen init
 {
     memcpy((void *)A11_PAYLOAD_LOC, arm11_bin, arm11_bin_size);
@@ -29,9 +31,6 @@ static void doArm11Stuff(void) // b11 lockout sync and screen init
 
 static void loadFirm(bool isNand)
 {
-    const char *argv[1];
-    argv[0] = isNand ? "nand:/boot.firm" : "sdmc:/boot.firm";
-
     Firm *firmHeader = (Firm *)0x080A0000;
     if(fileRead(firmHeader, "boot.firm", 0x200) == 0 || !checkFirmHeader(firmHeader))
         return;
@@ -40,32 +39,32 @@ static void loadFirm(bool isNand)
     if(*arm11Flags & 2)
     {
         Firm *firm = (Firm *)0x08080000;
+
         doArm11Stuff();
+
         if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE) == 0 || !checkSectionHashes(firm))
             return;
-        launchFirm(firm, 1, (char **)argv);
+        
+        itcmStub(firm, isNand); // launch firm
     }
     else
     {
         Firm *firm = (Firm *)0x20001000;
-        while(!(CFG9_SYSPROT9 & 1))
-            CFG9_SYSPROT9 |= 1;
 
-        while(!(CFG9_SYSPROT11 & 1))
-            CFG9_SYSPROT11 |= 1;
-
+        itcmStub(NULL, isNand); // lock bootroms
         doArm11Stuff();
 
         if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE_FCRAM) == 0 || !checkSectionHashes(firm))
             return;
         
-        launchFirm(firm, 1, (char **)argv);
+        itcmStub(firm, isNand); // launch firm
     }
 }
 
 void main(void)
 {
     setupKeyslots();
+    memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
 
     if(mountSd())
     {

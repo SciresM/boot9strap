@@ -20,28 +20,23 @@
 *   Notices displayed by works containing it.
 */
 
-#pragma once
+#include "memory.h"
+#include "cache.h"
+#include "firm.h"
 
-#include "types.h"
-
-typedef struct __attribute__((packed))
+void lockBootroms(void)
 {
-    u32 offset;
-    u8 *address;
-    u32 size;
-    u32 procType;
-    u8 hash[0x20];
-} FirmSection;
+    while(!(CFG9_SYSPROT9 & 1))
+        CFG9_SYSPROT9 |= 1;
 
-typedef struct __attribute__((packed))
+    while(!(CFG9_SYSPROT11 & 1))
+        CFG9_SYSPROT11 |= 1;
+}
+
+void main(Firm *firm, bool isNand)
 {
-    char magic[4];
-    u32 reserved1;
-    u8 *arm11Entry;
-    u8 *arm9Entry;
-    u8 reserved2[0x30];
-    FirmSection section[4];
-} Firm;
+    const char *argv[1];
+    argv[0] = isNand ? "nand:/boot.firm" : "sdmc:/boot.firm";
 
-bool checkFirmHeader(Firm *firm);
-bool checkSectionHashes(Firm *firm);
+    launchFirm(firm, 1, (char **)argv);
+}

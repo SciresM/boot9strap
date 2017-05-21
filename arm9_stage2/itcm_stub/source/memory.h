@@ -20,28 +20,12 @@
 *   Notices displayed by works containing it.
 */
 
+/*
+*   memcpy adapted from https://github.com/mid-kid/CakesForeveryWan/blob/557a8e8605ab3ee173af6497486e8f22c261d0e2/source/memfuncs.c
+*/
+
 #pragma once
 
 #include "types.h"
 
-typedef struct __attribute__((packed))
-{
-    u32 offset;
-    u8 *address;
-    u32 size;
-    u32 procType;
-    u8 hash[0x20];
-} FirmSection;
-
-typedef struct __attribute__((packed))
-{
-    char magic[4];
-    u32 reserved1;
-    u8 *arm11Entry;
-    u8 *arm9Entry;
-    u8 reserved2[0x30];
-    FirmSection section[4];
-} Firm;
-
-bool checkFirmHeader(Firm *firm);
-bool checkSectionHashes(Firm *firm);
+void memcpy(void *dest, const void *src, u32 size);

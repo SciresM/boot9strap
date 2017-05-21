@@ -22,26 +22,18 @@
 
 #pragma once
 
-#include "types.h"
+#include <stdbool.h>
+#include <stdint.h>
 
-typedef struct __attribute__((packed))
-{
-    u32 offset;
-    u8 *address;
-    u32 size;
-    u32 procType;
-    u8 hash[0x20];
-} FirmSection;
+//Common data types
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef volatile u8 vu8;
+typedef volatile u16 vu16;
+typedef volatile u32 vu32;
+typedef volatile u64 vu64;
 
-typedef struct __attribute__((packed))
-{
-    char magic[4];
-    u32 reserved1;
-    u8 *arm11Entry;
-    u8 *arm9Entry;
-    u8 reserved2[0x30];
-    FirmSection section[4];
-} Firm;
-
-bool checkFirmHeader(Firm *firm);
-bool checkSectionHashes(Firm *firm);
+#define CFG9_SYSPROT9   (*(vu8 *)0x10000000)
+#define CFG9_SYSPROT11  (*(vu8 *)0x10000001)

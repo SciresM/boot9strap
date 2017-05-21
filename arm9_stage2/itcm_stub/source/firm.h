@@ -1,6 +1,6 @@
 /*
 *   This file is part of Luma3DS
-*   Copyright (C) 2016 Aurora Wright, TuxSH
+*   Copyright (C) 2017 Aurora Wright, TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -43,5 +43,4 @@ typedef struct __attribute__((packed))
     FirmSection section[4];
 } Firm;
 
-bool checkFirmHeader(Firm *firm);
-bool checkSectionHashes(Firm *firm);
+void launchFirm(Firm *firm, int argc, char **argv);

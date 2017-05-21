@@ -1,6 +1,6 @@
 /*
 *   This file is part of Luma3DS
-*   Copyright (C) 2016 Aurora Wright, TuxSH
+*   Copyright (C) 2017 Aurora Wright, TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -20,28 +20,24 @@
 *   Notices displayed by works containing it.
 */
 
-#pragma once
+#include "firm.h"
+#include "memory.h"
+#include "cache.h"
 
-#include "types.h"
-
-typedef struct __attribute__((packed))
+void launchFirm(Firm *firm, int argc, char **argv)
 {
-    u32 offset;
-    u8 *address;
-    u32 size;
-    u32 procType;
-    u8 hash[0x20];
-} FirmSection;
+    //Copy FIRM sections to respective memory locations
+    for(u32 sectionNum = 0; sectionNum < 4 && firm->section[sectionNum].size != 0; sectionNum++)
+        memcpy(firm->section[sectionNum].address, (u8 *)firm + firm->section[sectionNum].offset, firm->section[sectionNum].size);
 
-typedef struct __attribute__((packed))
-{
-    char magic[4];
-    u32 reserved1;
-    u8 *arm11Entry;
-    u8 *arm9Entry;
-    u8 reserved2[0x30];
-    FirmSection section[4];
-} Firm;
+    //Set ARM11 entrypoint
+    *(vu32 *)0x1FFFFFFC = (u32)firm->arm11Entry;
 
-bool checkFirmHeader(Firm *firm);
-bool checkSectionHashes(Firm *firm);
+    //Ensure that all memory transfers have completed and that the caches have been flushed
+    flushCaches();
+
+    //Jump to ARM9 entrypoint. Also give it additional arguments it can dismiss
+    ((void (*)(int, char**, u32))firm->arm9Entry)(argc, argv, 0x0000BEEF);
+
+    __builtin_unreachable();
+}
