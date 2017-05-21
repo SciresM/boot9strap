@@ -25,8 +25,6 @@
 #include "cache.h"
 #include "crypto.h"
 
-extern u32 __start__, __end__, __stack_top__, __stack_bottom__;
-
 static __attribute((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be)
 {
     if (as <= bs && bs <= ae)
@@ -69,11 +67,9 @@ bool checkFirmHeader(Firm *firm)
 
         if(((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF)) //alignment check
             return false;
-
-        if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)&__start__, (u32)&__end__))
-            return false;
-        else if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)&__stack_bottom__, (u32)&__stack_top__))
-            return false;
+        
+        if(section->address < (u8 *)0x08000000)
+            return false; // Disallow ITCM entirely
         else if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)firm + section->offset, (u32)firm + size))
             return false;
         else if((firm->reserved2[0] & 2) && overlaps((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x30000000))
