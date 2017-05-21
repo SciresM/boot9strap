@@ -14,7 +14,7 @@ arm9mem_dabrt_loc equ 0x08000028
 
 .create "build/code9.bin",0x08000200
 
-.area 1F0h
+.area 0x1F0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Boot9 Data Abort handler: Overwrites two boot9 function pointers, then returns.
@@ -65,7 +65,7 @@ b9_hook_1:
 ; b9_hook_2: Dump the arm11 bootrom, synchronize with boot11, dump the arm9
 ;            bootrom, and then return to execution.
 b9_hook_2:
-    stmfd sp!, {r0-r6, lr}
+    mov r11, r0
 
     ; Dump boot11
     ldr r0, =b11_axi_addr
@@ -90,7 +90,8 @@ b9_hook_2:
     mov r2, #0x10000
     ldr r3, =b9_memcpy
     blx r3
-    ldmfd sp!, {r0-r6, pc}
+
+    bx r11                     ; Jump to entrypoint
 
 .pool
 
@@ -99,7 +100,7 @@ b9_hook_2:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; dabrt_vector: The data abort vector copied over by our NDMA write.
 .org 0x080003F0 
-.area 10h
+.area 0x10
 dabrt_vector:
 ldr pc, [pc, #-0x4]
 .dw dabort_handler
@@ -111,7 +112,7 @@ ldr pc, [pc, #-0x4]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; stage 2: Load stage 2 payload to 0x08010000.
 .org 0x08010000
-.area 10000h
+.area 0x10000
 .incbin "arm9_stage2/out/arm9_stage2.bin"
 .endarea
 .align 0x10000
@@ -125,27 +126,28 @@ ldr pc, [pc, #-0x4]
 ;              It copies the bootrom to axi_wram, then syncs with
 ;              boot9 hook.
 boot11_hook:
-stmfd sp!, {r0-r6, lr}
-ldr r1, =b11_axi_addr      
-ldr r0, =0x10000            
-mov r2, #0x0
-b11_copy_loop:           ; Simple memcpy loop from boot11 to axiwram.
-    ldr r3, [r0, r2]
-    str r3, [r1, r2]
-    add r2, r2, #0x4
-    cmp r2, r0
-    blt b11_copy_loop
+    mov r11, r0
 
-ldr r1, =b11_axi_addr    ; Let boot9 know that we are done.
-mov r0, #0x1
-str r0, [r1, #-0x4]
+    ldr r1, =b11_axi_addr      
+    ldr r0, =0x10000            
+    mov r2, #0x0
+    b11_copy_loop:           ; Simple memcpy loop from boot11 to axiwram.
+        ldr r3, [r0, r2]
+        str r3, [r1, r2]
+        add r2, r2, #0x4
+        cmp r2, r0
+        blt b11_copy_loop
 
-wait_for_b9_copy:        ; Wait for boot9 to confirm it received our dump.
-    ldr r0, [r1, #-0x4]
-    cmp r0, #0x0
-    bne wait_for_b9_copy
+    ldr r1, =b11_axi_addr    ; Let boot9 know that we are done.
+    mov r0, #0x1
+    str r0, [r1, #-0x4]
 
-ldmfd sp!, {r0-r6, pc}   ; Return to bootrom lockout
+    wait_for_b9_copy:        ; Wait for boot9 to confirm it received our dump.
+        ldr r0, [r1, #-0x4]
+        cmp r0, #0x0
+        bne wait_for_b9_copy
+
+    bx r11                   ; Jump to entrypoint
 
 .pool
 
@@ -156,22 +158,22 @@ ldmfd sp!, {r0-r6, pc}   ; Return to bootrom lockout
 
 ; this only runs on core0
 
-.dw 0xf10c01c0              ; mask all interrupts (bootrom only masks IRQs but w/e)
+.dw 0xF10C01C0              ; mask all interrupts (bootrom only masks IRQs but w/e)
 
 copy_core0_stub_and_jump:
-    ldr r0, =0x1ffffc00
+    ldr r0, =0x1FFFFFC0
     adr r1, _core0_stub
     mov r2, #(memcpy32 - _core0_stub)
     bl memcpy32
 
-ldr r0, =0x1ffffc00
+ldr r0, =0x1FFFFFC0
 bx r0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 _core0_stub:
 
-ldr r0, =0x1ffffffc
+ldr r0, =0x1FFFFFFC
 mov r1, #0
 str r1, [r0]        ; zero out core0's entrypoint
 
@@ -206,7 +208,7 @@ bx lr
 ; NDMA section: This generates the NDMA overwrite file.
 
 .create "build/NDMA.bin",0
-.area 200h
+.area 0x200
 .dw 0x00000000          ; NDMA Global CNT
 .dw dabrt_vector        ; Source Address
 .dw arm9mem_dabrt_loc   ; Destination Address
@@ -223,7 +225,6 @@ bx lr
 ; Data abort section: This is just a single sector causes boot9 to data abort.
 
 .create "build/dabrt.bin",0
-.area 200h
-.fill 0x200,0xFF
+.area 0x200, 0xFF
 .endarea
 .close

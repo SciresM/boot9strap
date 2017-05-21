@@ -36,7 +36,7 @@ static __attribute((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be)
     return false;
 }
 
-bool checkFirm(Firm *firm)
+bool checkFirmHeader(Firm *firm)
 {
     //Very basic checks
 
@@ -55,8 +55,6 @@ bool checkFirm(Firm *firm)
 
     for(u32 i = 0; i < 4; i++)
     {
-        __attribute__((aligned(4))) u8 hash[0x20];
-
         FirmSection *section = &firm->section[i];
 
         //Allow empty sections
@@ -76,11 +74,9 @@ bool checkFirm(Firm *firm)
             return false;
         else if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)&__stack_bottom__, (u32)&__stack_top__))
             return false;
-        else if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)firm, (u32)firm + size))
+        else if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)firm + section->offset, (u32)firm + size))
             return false;
-        
-        sha(hash, (u8 *)firm + section->offset, section->size, SHA_256_MODE);
-        if(memcmp(hash, section->hash, 0x20) != 0)
+        else if((firm->reserved2[0] & 2) && overlaps((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x30000000))
             return false;
 
         if(firm->arm9Entry >= section->address && firm->arm9Entry < (section->address + section->size))
@@ -91,6 +87,24 @@ bool checkFirm(Firm *firm)
     }
 
     return arm9EpFound && (firm->arm11Entry == NULL || arm11EpFound);
+}
+
+bool checkSectionHashes(Firm *firm)
+{
+    for(u32 i = 0; i < 4; i++)
+    {
+        __attribute__((aligned(4))) u8 hash[0x20];
+        FirmSection *section = &firm->section[i];
+        
+        if(section->size == 0)
+            continue;
+        
+        sha(hash, (u8 *)firm + section->offset, section->size, SHA_256_MODE);
+        if(memcmp(hash, section->hash, 0x20) != 0)
+            return false;
+    }
+
+    return true;
 }
 
 void launchFirm(Firm *firm, int argc, char **argv)

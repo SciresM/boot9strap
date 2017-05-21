@@ -43,5 +43,6 @@ typedef struct __attribute__((packed))
     FirmSection section[4];
 } Firm;
 
-bool checkFirm(Firm *firm);
+bool checkFirmHeader(Firm *firm);
+bool checkSectionHashes(Firm *firm);
 void launchFirm(Firm *firm, int argc, char **argv);

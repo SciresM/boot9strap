@@ -4,7 +4,7 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 SECTIONS
 {
-    . = 0x08010000;
+    . = 0x080F8000; /* this means b9s is limited to 32KB */
 
     __start__ = ABSOLUTE(.);
 
@@ -16,6 +16,6 @@ SECTIONS
 
     __end__ = ABSOLUTE(.);
 
-    __stack_top__    = 0x23000000;
-    __stack_bottom__ = 0x22FF0000;
+    __stack_top__    = 0x080F8000;
+    __stack_bottom__ = 0x080F7000;
 }
