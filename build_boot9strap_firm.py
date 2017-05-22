@@ -24,7 +24,7 @@ def main(argc, argv):
         ofs = 0x200
         for i,data in enumerate(section_datas):
             b9s.write(struct.pack('<IIII', ofs, load_addresses[i], len(data), 0x00000002))
-            b9s.write(binascii.unhexlify(hashlib.sha256(data).hexdigest()))
+            b9s.write(hashlib.sha256(data).digest())
             ofs += len(data)
         b9s.write(binascii.unhexlify(perfect_signature))
         for data in section_datas:
@@ -33,12 +33,12 @@ def main(argc, argv):
         b9s = f.read()
     b9s_dev = b9s[:0x100] + binascii.unhexlify(dev_perfect_signature) + b9s[0x200:]
     with open('out/boot9strap.firm.sha', 'wb') as f:
-        f.write(binascii.unhexlify(hashlib.sha256(b9s).hexdigest()))
+        f.write(hashlib.sha256(b9s).digest())
     print ('Successfully built out/boot9strap.firm!')
     with open('out/boot9strap_dev.firm', 'wb') as f:
         f.write(b9s_dev)
     with open('out/boot9strap_dev.firm.sha', 'wb') as f:
-        f.write(binascii.unhexlify(hashlib.sha256(b9s_dev).hexdigest()))
+        f.write(hashlib.sha256(b9s_dev).digest())
     print ('Successfully built out/boot9strap_dev.firm!')
 
 if __name__ == '__main__':
