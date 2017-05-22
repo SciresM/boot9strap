@@ -10,9 +10,8 @@ _start:
 .global prepareForFirmlaunch
 .type   prepareForFirmlaunch, %function
 prepareForFirmlaunch:
+    @ zero'ing out core0's entrypoint has already been done
     ldr r0, =0x1FFFFFFC
-    mov r1, #0
-    str r1, [r0]        @ zero out core0's entrypoint
 
     _wait_for_core0_entrypoint_loop:
         ldr r1, [r0]    @ check if core0's entrypoint is 0

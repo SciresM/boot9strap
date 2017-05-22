@@ -7,6 +7,8 @@ void prepareForFirmlaunch(void);
 extern u32 prepareForFirmlaunchSize;
 
 static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FFFFFF0;
+static vu8 *syncState = (vu8 *)0x1FFFFFF1;
+static vu32 *arm11Entrypoint = (vu32 *)0x1FFFFFFC;
 
 void initScreens(void)
 {
@@ -132,6 +134,10 @@ void main(void)
 {
     *operation = NO_ARM11_OPERATION;
 
+    *syncState = 1;
+    while(*syncState != 2);
+    *syncState = 3;
+
     while(true)
     {
         switch(*operation)
@@ -146,6 +152,7 @@ void main(void)
                 break;
             case PREPARE_ARM11_FOR_FIRMLAUNCH:
                 memcpy((void *)0x1FFFFC00, (void *)prepareForFirmlaunch, prepareForFirmlaunchSize);
+                *arm11Entrypoint = 0;
                 *operation = NO_ARM11_OPERATION;
                 ((void (*)(void))0x1FFFFC00)();
                 break;
