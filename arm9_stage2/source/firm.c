@@ -22,7 +22,6 @@
 
 #include "firm.h"
 #include "memory.h"
-#include "cache.h"
 #include "crypto.h"
 
 static __attribute((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be)
@@ -34,55 +33,42 @@ static __attribute((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be)
     return false;
 }
 
-bool checkFirmHeader(Firm *firm)
+bool checkFirmHeader(Firm *firmHeader)
 {
-    //Very basic checks
-
-    if(memcmp(firm->magic, "FIRM", 4) != 0)
-        return false;
-
-    if(firm->arm9Entry == NULL) //Allow for the arm11 entrypoint to be zero in which case nothing is done on the arm11 side
+    if(memcmp(firmHeader->magic, "FIRM", 4) != 0 || firmHeader->arm9Entry == NULL) //Allow for the ARM11 entrypoint to be zero in which case nothing is done on the ARM11 side
         return false;
 
     u32 size = 0x200;
     for(u32 i = 0; i < 4; i++)
-        size += firm->section[i].size;
+        size += firmHeader->section[i].size;
 
     bool arm9EpFound = false,
          arm11EpFound = false;
 
     for(u32 i = 0; i < 4; i++)
     {
-        FirmSection *section = &firm->section[i];
+        FirmSection *section = &firmHeader->section[i];
 
         //Allow empty sections
         if(section->size == 0)
             continue;
 
-        if(section->offset < 0x200)
+        if((section->offset < 0x200) ||
+           (section->address + section->size < section->address) || //Overflow check
+           ((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF) || //Alignment check
+           (overlaps((u32)section->address, (u32)section->address + section->size, 0x01FF8000, 0x01FF8000 + 0x8000)) ||
+           ((firmHeader->reserved2[0] & 2) && overlaps((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x30000000)) ||
+           (overlaps((u32)section->address, (u32)section->address + section->size, (u32)firmHeader + section->offset, (u32)firmHeader + size)))
             return false;
 
-        if(section->address + section->size < section->address) //overflow check
-            return false;
-
-        if(((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF)) //alignment check
-            return false;
-        
-        if(section->address < (u8 *)0x08000000)
-            return false; // Disallow ITCM entirely
-        else if(overlaps((u32)section->address, (u32)section->address + section->size, (u32)firm + section->offset, (u32)firm + size))
-            return false;
-        else if((firm->reserved2[0] & 2) && overlaps((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x30000000))
-            return false;
-
-        if(firm->arm9Entry >= section->address && firm->arm9Entry < (section->address + section->size))
+        if(firmHeader->arm9Entry >= section->address && firmHeader->arm9Entry < (section->address + section->size))
             arm9EpFound = true;
 
-        if(firm->arm11Entry >= section->address && firm->arm11Entry < (section->address + section->size))
+        if(firmHeader->arm11Entry >= section->address && firmHeader->arm11Entry < (section->address + section->size))
             arm11EpFound = true;
     }
 
-    return arm9EpFound && (firm->arm11Entry == NULL || arm11EpFound);
+    return arm9EpFound && (firmHeader->arm11Entry == NULL || arm11EpFound);
 }
 
 bool checkSectionHashes(Firm *firm)

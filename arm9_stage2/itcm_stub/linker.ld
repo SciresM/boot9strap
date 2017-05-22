@@ -4,7 +4,7 @@ OUTPUT_ARCH(arm)
 ENTRY(_start)
 SECTIONS
 {
-    . = 0x07FF8000;
+    . = 0x01FF8000;
     
     __start__ = ABSOLUTE(.);
 
@@ -16,6 +16,6 @@ SECTIONS
 
     __end__ = ABSOLUTE(.);
 
-    __stack_top__    = 0x07FFB800;
-    __stack_bottom__ = 0x07FFA800;
+    __stack_top__    = 0x01FFB800;
+    __stack_bottom__ = 0x01FFA800;
 }

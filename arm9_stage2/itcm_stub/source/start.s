@@ -23,6 +23,4 @@
 .global _start
 _start:
     ldr sp, =__stack_top__
-    cmp r0, #0
-    beq lockBootroms
-    bne main
+    b main

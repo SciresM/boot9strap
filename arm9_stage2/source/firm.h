@@ -43,5 +43,5 @@ typedef struct __attribute__((packed))
     FirmSection section[4];
 } Firm;
 
-bool checkFirmHeader(Firm *firm);
+bool checkFirmHeader(Firm *firmHeader);
 bool checkSectionHashes(Firm *firm);

@@ -20,18 +20,7 @@
 *   Notices displayed by works containing it.
 */
 
-#include "memory.h"
-#include "cache.h"
 #include "firm.h"
-
-void lockBootroms(void)
-{
-    while(!(CFG9_SYSPROT9 & 1))
-        CFG9_SYSPROT9 |= 1;
-
-    while(!(CFG9_SYSPROT11 & 1))
-        CFG9_SYSPROT11 |= 1;
-}
 
 void main(Firm *firm, bool isNand)
 {

@@ -12,62 +12,60 @@
 #include "buttons.h"
 #include "../build/bundled.h"
 
-#define MAX_FIRM_SIZE         0x77000
-#define MAX_FIRM_SIZE_FCRAM   0x07FFF000
 #define A11_PAYLOAD_LOC 0x1FFFE000 //Keep in mind this needs to be changed in the ld script for arm11 too
 #define A11_ENTRYPOINT  0x1FFFFFFC
 
-static vu8 *arm11Flags = (vu8 *)0x1FFFFFF0;
+static void (*const itcmStub)(Firm *firm, bool isNand) = (void (*const)(Firm *, bool))0x01FF8000;
 
-static void (*const itcmStub)(Firm *firm, bool isNand) = (void (*const)(Firm *, bool))0x07FF8000;
+static void shutdown(void)
+{
+    flushEntireDCache();
+    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
+    while(true);
+}
 
-static void doArm11Stuff(void) // b11 lockout sync and screen init
+static void initScreens(void)
 {
     memcpy((void *)A11_PAYLOAD_LOC, arm11_bin, arm11_bin_size);
     *(vu32 *)A11_ENTRYPOINT = A11_PAYLOAD_LOC;
     while(*(vu32 *)A11_ENTRYPOINT != 0);
-    if(*arm11Flags & 1) i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
+    i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
 }
 
 static void loadFirm(bool isNand)
 {
     Firm *firmHeader = (Firm *)0x080A0000;
-    if(fileRead(firmHeader, "boot.firm", 0x200) == 0 || !checkFirmHeader(firmHeader))
-        return;
-    
-    *arm11Flags = firmHeader->reserved2[0];
+    if(fileRead(firmHeader, "boot.firm", 0x200, 0) != 0x200) return;
+    if(!checkFirmHeader(firmHeader)) shutdown();
 
-    *arm11Flags &= ~2;
-    if(*arm11Flags & 2) // soon (tm) ?
+    Firm *firm;
+    u32 maxFirmSize;
+
+    if(!(firmHeader->reserved2[0] & 2))
     {
-        Firm *firm = (Firm *)0x08080000;
+        //Lockout
+        while(!CFG9_SYSPROT9) CFG9_SYSPROT9 = 1;
+        while(!CFG9_SYSPROT11) CFG9_SYSPROT11 = 1;
 
-        doArm11Stuff();
-
-        if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE) == 0 || !checkSectionHashes(firm))
-            return;
-        
-        itcmStub(firm, isNand); // launch firm
+        firm = (Firm *)0x20001000;
+        maxFirmSize = 0x07FFF000;
     }
     else
     {
-        Firm *firm = (Firm *)0x20001000;
-
-        //itcmStub(NULL, isNand); // lock bootroms
-        doArm11Stuff();
-
-        if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE_FCRAM) == 0 || !checkSectionHashes(firm))
-            return;
-        
-        itcmStub(firm, isNand); // launch firm
+        firm = (Firm *)0x08080000;
+        maxFirmSize = 0x77000;
     }
+
+    if(fileRead(firm, "boot.firm", 0, maxFirmSize) <= 0x200 || !checkSectionHashes(firm)) shutdown();
+    if(firm->reserved2[0] & 1) initScreens();
+
+    memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
+    itcmStub(firm, isNand); //Launch firm
 }
 
 void main(void)
 {
     setupKeyslots();
-    memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
-    itcmStub(NULL, false); // lock bootroms
 
     if(mountSd())
     {
@@ -85,8 +83,5 @@ void main(void)
 
     if(mountCtrNand()) loadFirm(true);
 
-    //Shutdown
-    flushEntireDCache();
-    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
-    while(true);
+    shutdown();
 }

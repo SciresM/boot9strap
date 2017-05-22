@@ -23,15 +23,15 @@ bool mountCtrNand(void)
     return f_mount(&fs, "1:", 1) == FR_OK && f_chdrive("1:") == FR_OK;
 }
 
-u32 fileRead(void *dest, const char *path, u32 maxSize)
+u32 fileRead(void *dest, const char *path, u32 size, u32 maxSize)
 {
     FIL file;
     u32 ret = 0;
 
     if(f_open(&file, path, FA_READ) != FR_OK) return ret;
 
-    u32 size = f_size(&file);
-    if(size <= maxSize)
+    if(!size) size = f_size(&file);
+    if(!maxSize || size <= maxSize)
         f_read(&file, dest, size, (unsigned int *)&ret);
     f_close(&file);
 

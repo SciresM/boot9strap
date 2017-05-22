@@ -90,8 +90,7 @@ b9_hook_2:
     mov r2, #0x10000
     ldr r3, =b9_memcpy
     blx r3
-
-    bx r11                     ; Jump to entrypoint
+    bx r11
 
 .pool
 
@@ -147,7 +146,7 @@ boot11_hook:
         cmp r0, #0x0
         bne wait_for_b9_copy
 
-    bx r11                   ; Jump to entrypoint
+    bx r11   ; Return to bootrom lockout
 
 .pool
 
@@ -161,12 +160,12 @@ boot11_hook:
 .dw 0xF10C01C0              ; mask all interrupts (bootrom only masks IRQs but w/e)
 
 copy_core0_stub_and_jump:
-    ldr r0, =0x1FFFFFC0
+    ldr r0, =0x1FFFFC00
     adr r1, _core0_stub
     mov r2, #(memcpy32 - _core0_stub)
     bl memcpy32
 
-ldr r0, =0x1FFFFFC0
+ldr r0, =0x1FFFFC00
 bx r0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
