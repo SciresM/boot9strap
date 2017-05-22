@@ -17,7 +17,7 @@ def main(argc, argv):
         # Write FIRM header.
         b9s.write(b'FIRM')
         # Write (zero (boot priority)), ARM11 Entrypoint, ARM9 Entrypoint
-        b9s.write(struct.pack('<III', 0x00000000, 0x1FF80200, 0x08010000))
+        b9s.write(struct.pack('<III', 0x00000000, 0x1FF80200, 0x08001000))
         b9s.write(b'\x00' * 0x2D)
         # Write boot9strap magic value
         b9s.write(b'B9S')

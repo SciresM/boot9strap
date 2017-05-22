@@ -36,7 +36,9 @@ static void loadFirm(bool isNand)
         return;
     
     *arm11Flags = firmHeader->reserved2[0];
-    if(*arm11Flags & 2)
+
+    *arm11Flags &= ~2;
+    if(*arm11Flags & 2) // soon (tm) ?
     {
         Firm *firm = (Firm *)0x08080000;
 
@@ -51,7 +53,7 @@ static void loadFirm(bool isNand)
     {
         Firm *firm = (Firm *)0x20001000;
 
-        itcmStub(NULL, isNand); // lock bootroms
+        //itcmStub(NULL, isNand); // lock bootroms
         doArm11Stuff();
 
         if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE_FCRAM) == 0 || !checkSectionHashes(firm))
@@ -65,6 +67,7 @@ void main(void)
 {
     setupKeyslots();
     memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
+    itcmStub(NULL, false); // lock bootroms
 
     if(mountSd())
     {
