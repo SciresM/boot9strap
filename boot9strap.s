@@ -112,7 +112,7 @@ ldr pc, [pc, #-0x4]
 ; stage 2: Load stage 2 payload to 0x08001000.
 .org 0x08001000
 .area 0x10000
-.incbin "arm9_stage2/out/arm9_stage2.bin"
+.incbin "stage2/arm9/out/arm9.bin"
 .endarea
 .align 0x10000
 
@@ -151,54 +151,14 @@ boot11_hook:
 .pool
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; arm11_stub: Code that runs post-bootrom lockout on the arm11 cores.
-;             Loads an entrypoint that arm9 payload will write.
+; arm11 stage 2
 .org (code_11_load_addr+0x200)
 
 ; this only runs on core0
 
-.dw 0xF10C01C0              ; mask all interrupts (bootrom only masks IRQs but w/e)
-
-copy_core0_stub_and_jump:
-    ldr r0, =0x1FFFFC00
-    adr r1, _core0_stub
-    mov r2, #(memcpy32 - _core0_stub)
-    bl memcpy32
-
-ldr r0, =0x1FFFFC00
-bx r0
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-_core0_stub:
-
-ldr r0, =0x1FFFFFFC
-mov r1, #0
-str r1, [r0]        ; zero out core0's entrypoint
-
-_wait_for_core0_entrypoint_loop:
-    ldr r1, [r0]    ; check if core0's entrypoint is 0
-    cmp r1, #0
-    beq _wait_for_core0_entrypoint_loop
-
-bx r1               ; jump to core0 entrypoint
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-memcpy32:
-
-add r2, r1
-
-_copy_loop:
-    ldr r3, [r1], #4
-    str r3, [r0], #4
-    cmp r1, r2
-    blo _copy_loop
-
-bx lr
-
-.pool
-
+.area 0x10000
+.incbin "stage2/arm11/out/arm11.bin"
+.endarea
 .align 0x200
 
 .close

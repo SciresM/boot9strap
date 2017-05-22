@@ -1,11 +1,15 @@
 #include "types.h"
+#include "memory.h"
 
 #define BRIGHTNESS 0x39
 
-void __attribute__((naked)) main(void)
-{
-    vu32 *arm11Entry = (vu32 *)0x1FFFFFFC;
+void prepareForFirmlaunch(void);
+extern u32 prepareForFirmlaunchSize;
 
+static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FFFFFF0;
+
+void initScreens(void)
+{
     *(vu32 *)0x10141200 = 0x1007F;
     *(vu32 *)0x10202014 = 0x00000001;
     *(vu32 *)0x1020200C &= 0xFFFEFFFE;
@@ -83,39 +87,70 @@ void __attribute__((naked)) main(void)
     for(u32 i = 0; i < 256; i++)
         *(vu32 *)0x10400584 = 0x10101 * i;
 
-    //Set CakeBrah framebuffers
-    fb->top_left = (u8 *)0x18300000;
-    fb->top_right = (u8 *)0x18300000;
-    fb->bottom = (u8 *)0x18346500;
+    *(vu32 *)0x10400468 = 0x18300000;
+    *(vu32 *)0x1040046c = 0x18400000;
+    *(vu32 *)0x10400494 = 0x18300000;
+    *(vu32 *)0x10400498 = 0x18400000;
+    *(vu32 *)0x10400568 = 0x18346500;
+    *(vu32 *)0x1040056c = 0x18446500;
 
-    *(vu32 *)0x10400468 = (u32)fb->top_left;
-    *(vu32 *)0x1040046c = (u32)fb->top_left;
-    *(vu32 *)0x10400494 = (u32)fb->top_right;
-    *(vu32 *)0x10400498 = (u32)fb->top_right;
-    *(vu32 *)0x10400568 = (u32)fb->bottom;
-    *(vu32 *)0x1040056c = (u32)fb->bottom;
-
+    //Clear both framebuffer sets
     vu32 *REGs_PSC0 = (vu32 *)0x10400010,
          *REGs_PSC1 = (vu32 *)0x10400020;
 
-    REGs_PSC0[0] = (u32)fb->top_left >> 3; //Start address
-    REGs_PSC0[1] = (u32)(fb->top_left + SCREEN_TOP_FBSIZE) >> 3; //End address
+    REGs_PSC0[0] = 0x18300000 >> 3; //Start address
+    REGs_PSC0[1] = (0x18300000 + SCREEN_TOP_FBSIZE) >> 3; //End address
     REGs_PSC0[2] = 0; //Fill value
     REGs_PSC0[3] = (2 << 8) | 1; //32-bit pattern; start
 
-    REGs_PSC1[0] = (u32)fb->bottom >> 3; //Start address
-    REGs_PSC1[1] = (u32)(fb->bottom + SCREEN_BOTTOM_FBSIZE) >> 3; //End address
+    REGs_PSC1[0] = 0x18346500 >> 3; //Start address
+    REGs_PSC1[1] = (0x18346500 + SCREEN_BOTTOM_FBSIZE) >> 3; //End address
     REGs_PSC1[2] = 0; //Fill value
     REGs_PSC1[3] = (2 << 8) | 1; //32-bit pattern; start
 
     while(!((REGs_PSC0[3] & 2) && (REGs_PSC1[3] & 2)));
 
-    //Clear ARM11 entrypoint
-    *arm11Entry = 0;
+    REGs_PSC0[0] = 0x18400000 >> 3; //Start address
+    REGs_PSC0[1] = (0x18400000 + SCREEN_TOP_FBSIZE) >> 3; //End address
+    REGs_PSC0[2] = 0; //Fill value
+    REGs_PSC0[3] = (2 << 8) | 1; //32-bit pattern; start
 
-    //Wait for the entrypoint to be set
-    while(!*arm11Entry);
+    REGs_PSC1[0] = 0x18446500 >> 3; //Start address
+    REGs_PSC1[1] = (0x18446500 + SCREEN_BOTTOM_FBSIZE) >> 3; //End address
+    REGs_PSC1[2] = 0; //Fill value
+    REGs_PSC1[3] = (2 << 8) | 1; //32-bit pattern; start
 
-    //Jump to it
-    ((void (*)())*arm11Entry)();
+    while(!((REGs_PSC0[3] & 2) && (REGs_PSC1[3] & 2)));
+}
+
+static void waitBootromLocked(void)
+{
+    while(*(vu64 *)0x18000 != 0ULL);
+}
+
+void main(void)
+{
+    *operation = NO_ARM11_OPERATION;
+
+    while(true)
+    {
+        switch(*operation)
+        {
+            case NO_ARM11_OPERATION:
+                break;
+            case INIT_SCREENS:
+                initScreens();
+                break;
+            case WAIT_BOOTROM11_LOCKED:
+                waitBootromLocked();
+                break;
+            case PREPARE_ARM11_FOR_FIRMLAUNCH:
+                memcpy((void *)0x1FFFFC00, (void *)prepareForFirmlaunch, prepareForFirmlaunchSize);
+                *operation = NO_ARM11_OPERATION;
+                ((void (*)(void))0x1FFFFC00)();
+                break;
+        }
+
+        *operation = NO_ARM11_OPERATION;
+    }
 }

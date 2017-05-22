@@ -20,20 +20,12 @@
 *   Notices displayed by works containing it.
 */
 
+/*
+*   memcpy adapted from https://github.com/mid-kid/CakesForeveryWan/blob/557a8e8605ab3ee173af6497486e8f22c261d0e2/source/memfuncs.c
+*/
+
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "types.h"
 
-//Common data types
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef volatile u8 vu8;
-typedef volatile u16 vu16;
-typedef volatile u32 vu32;
-typedef volatile u64 vu64;
-
-#define CFG9_SYSPROT9   (*(vu8 *)0x10000000)
-#define CFG9_SYSPROT11  (*(vu8 *)0x10000001)
+void memcpy(void *dest, const void *src, u32 size);

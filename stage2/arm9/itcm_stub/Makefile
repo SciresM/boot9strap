@@ -12,9 +12,9 @@ dir_source := source
 dir_build := build
 dir_out := ../$(dir_build)
 
-ASFLAGS := -mcpu=mpcore -mfloat-abi=hard
-CFLAGS  := -Wall -Wextra -MMD -MP -mthumb -mthumb-interwork $(ASFLAGS) -fno-builtin -std=c11 -Wno-main -O2 -flto -ffast-math
-LDFLAGS := -nostdlib
+ASFLAGS := -mcpu=arm946e-s
+CFLAGS  := -Wall -Wextra -mthumb $(ASFLAGS) -fno-builtin -std=c11 -Wno-main -O2 -flto -ffast-math
+LDFLAGS := -nostartfiles -Wl,--nmagic
 
 objects = $(patsubst $(dir_source)/%.s, $(dir_build)/%.o, \
           $(patsubst $(dir_source)/%.c, $(dir_build)/%.o, \
@@ -32,6 +32,8 @@ $(dir_out)/$(name).bin: $(dir_build)/$(name).elf
 
 $(dir_build)/$(name).elf: $(objects)
 	$(LINK.o) -T linker.ld $(OUTPUT_OPTION) $^
+
+$(dir_build)/memory.o: CFLAGS += -O3
 
 $(dir_build)/%.o: $(dir_source)/%.c
 	@mkdir -p "$(@D)"

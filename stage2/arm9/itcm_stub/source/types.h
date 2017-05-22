@@ -20,12 +20,26 @@
 *   Notices displayed by works containing it.
 */
 
-#include "firm.h"
+#pragma once
 
-void main(Firm *firm, bool isNand)
-{
-    const char *argv[1];
-    argv[0] = isNand ? "nand:/boot.firm" : "sdmc:/boot.firm";
+#include <stdbool.h>
+#include <stdint.h>
 
-    launchFirm(firm, 1, (char **)argv);
-}
+//Common data types
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef volatile u8 vu8;
+typedef volatile u16 vu16;
+typedef volatile u32 vu32;
+typedef volatile u64 vu64;
+
+#define CFG9_SYSPROT9   (*(vu8 *)0x10000000)
+#define CFG9_SYSPROT11  (*(vu8 *)0x10000001)
+
+struct fb {
+     u8 *top_left;
+     u8 *top_right;
+     u8 *bottom;
+};

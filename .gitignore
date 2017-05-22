@@ -1,8 +1,11 @@
 *.bin
 *.firm
 out/*
-arm9_stage2/build*
-arm9_stage2/out*
+build/*
+stage2/arm9/build*
+stage2/arm9/out*
+stage2/arm11/build*
+stage2/arm11/out*
 *.o
 *.elf
 *.d

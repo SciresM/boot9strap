@@ -16,6 +16,7 @@
 #define A11_ENTRYPOINT  0x1FFFFFFC
 
 static void (*const itcmStub)(Firm *firm, bool isNand) = (void (*const)(Firm *, bool))0x01FF8000;
+static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FFFFFF0;
 
 static void shutdown(void)
 {
@@ -24,12 +25,11 @@ static void shutdown(void)
     while(true);
 }
 
-static void initScreens(void)
+static void invokeArm11Function(Arm11Operation op)
 {
-    memcpy((void *)A11_PAYLOAD_LOC, arm11_bin, arm11_bin_size);
-    *(vu32 *)A11_ENTRYPOINT = A11_PAYLOAD_LOC;
-    while(*(vu32 *)A11_ENTRYPOINT != 0);
-    i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
+    while(*operation != NO_ARM11_OPERATION);
+    *operation = op;
+    while(*operation != NO_ARM11_OPERATION); 
 }
 
 static void loadFirm(bool isNand)
@@ -44,8 +44,9 @@ static void loadFirm(bool isNand)
     if(!(firmHeader->reserved2[0] & 2))
     {
         //Lockout
-        while(!CFG9_SYSPROT9) CFG9_SYSPROT9 = 1;
-        while(!CFG9_SYSPROT11) CFG9_SYSPROT11 = 1;
+        while(!(CFG9_SYSPROT9  & 1)) CFG9_SYSPROT9  |= 1;
+        while(!(CFG9_SYSPROT11 & 1)) CFG9_SYSPROT11 |= 1;
+        invokeArm11Function(WAIT_BOOTROM11_LOCKED);
 
         firm = (Firm *)0x20001000;
         maxFirmSize = 0x07FFF000;
@@ -57,10 +58,17 @@ static void loadFirm(bool isNand)
     }
 
     if(fileRead(firm, "boot.firm", 0, maxFirmSize) <= 0x200 || !checkSectionHashes(firm)) shutdown();
-    if(firm->reserved2[0] & 1) initScreens();
+    if(firm->reserved2[0] & 1)
+    {
+        invokeArm11Function(INIT_SCREENS);
+        i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
+    }
 
     memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
-    itcmStub(firm, isNand); //Launch firm
+
+    //Launch firm
+    invokeArm11Function(PREPARE_ARM11_FOR_FIRMLAUNCH);
+    itcmStub(firm, isNand);
 }
 
 void main(void)

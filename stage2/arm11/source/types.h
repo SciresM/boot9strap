@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 //Common data types
 typedef uint8_t u8;
@@ -18,8 +19,10 @@ typedef volatile u64 vu64;
 #define SCREEN_TOP_FBSIZE    (3 * SCREEN_TOP_WIDTH * SCREEN_HEIGHT)
 #define SCREEN_BOTTOM_FBSIZE (3 * SCREEN_BOTTOM_WIDTH * SCREEN_HEIGHT)
 
-static volatile struct fb {
-     u8 *top_left;
-     u8 *top_right;
-     u8 *bottom;
-} *const fb = (volatile struct fb *)0x23FFFE00;
+typedef enum
+{
+    NO_ARM11_OPERATION = 0,
+    INIT_SCREENS,
+    WAIT_BOOTROM11_LOCKED,
+    PREPARE_ARM11_FOR_FIRMLAUNCH,
+} Arm11Operation;
