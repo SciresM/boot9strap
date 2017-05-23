@@ -83,6 +83,8 @@ void main(void)
             fileWrite((void *)0x08080000, "boot9strap/boot9.bin", 0x10000);
             fileWrite((void *)0x08090000, "boot9strap/boot11.bin", 0x10000);
             fileWrite((void *)0x10012000, "boot9strap/otp.bin", 0x100);
+
+            shutdown();
         }
 
         loadFirm(false);

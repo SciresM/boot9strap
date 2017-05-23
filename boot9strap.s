@@ -90,7 +90,8 @@ b9_hook_2:
     mov r2, #0x10000
     ldr r3, =b9_memcpy
     blx r3
-    bx r11
+
+    bx r11                   ; Jump to entrypoint
 
 .pool
 
@@ -146,7 +147,7 @@ boot11_hook:
         cmp r0, #0x0
         bne wait_for_b9_copy
 
-    bx r11   ; Return to bootrom lockout
+    bx r11                   ; Jump to entrypoint
 
 .pool
 
