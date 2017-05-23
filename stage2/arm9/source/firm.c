@@ -57,7 +57,7 @@ bool checkFirmHeader(Firm *firmHeader)
            (section->address + section->size < section->address) || //Overflow check
            ((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF) || //Alignment check
            (overlaps((u32)section->address, (u32)section->address + section->size, 0x01FF8000, 0x01FF8000 + 0x8000)) ||
-           (overlaps((u32)section->address, (u32)section->address + section->size, 0x1FF80200, 0x1FFFF000)) ||
+           (overlaps((u32)section->address, (u32)section->address + section->size, 0x1FFFFC00, 0x20000000)) ||
            ((firmHeader->reserved2[0] & 2) && overlaps((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x30000000)) ||
            (overlaps((u32)section->address, (u32)section->address + section->size, (u32)firmHeader + section->offset, (u32)firmHeader + size)))
             return false;
