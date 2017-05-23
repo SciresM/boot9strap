@@ -24,7 +24,7 @@
 #include "memory.h"
 #include "crypto.h"
 
-static __attribute((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be)
+static __attribute__((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be)
 {
     if (as <= bs && bs <= ae)
         return true;
