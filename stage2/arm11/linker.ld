@@ -10,6 +10,6 @@ SECTIONS
     .rodata : ALIGN(4) { *(.rodata*); . = ALIGN(4); }
     .data   : ALIGN(4) { *(.data*); . = ALIGN(8); *(.bss* COMMON); . = ALIGN(8); }
 
-    __stack_top__    = 0x1FFFE000;
+    __stack_top__    = 0x1FFFF000;
     . = ALIGN(4);
 }
