@@ -6,7 +6,8 @@
 void prepareForFirmlaunch(void);
 extern u32 prepareForFirmlaunchSize;
 
-extern volatile Arm11Operation operation;
+extern volatile bool arm11SectionStarted;
+static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FFFFFF0;
 
 void initScreens(void)
 {
@@ -130,13 +131,14 @@ static void waitBootromLocked(void)
 
 void main(void)
 {
-    operation = ARM11_READY;
+    arm11SectionStarted = true;
+    *operation = NO_ARM11_OPERATION;
 
     while(true)
     {
-        switch(operation)
+        switch(*operation)
         {
-            case ARM11_READY:
+            case NO_ARM11_OPERATION:
                 continue;
             case INIT_SCREENS:
                 initScreens();
@@ -146,11 +148,10 @@ void main(void)
                 break;
             case PREPARE_ARM11_FOR_FIRMLAUNCH:
                 memcpy((void *)0x1FFFFC00, (void *)prepareForFirmlaunch, prepareForFirmlaunchSize);
-                *(vu32 *)0x1FFFFFFC = 0;
-                operation = ARM11_READY;
+                __asm__ __volatile__("mcr p15, 0, %[val], c7, c10, 4" :: [val] "r" (0) : "memory"); //DSB, just in case
                 ((void (*)(void))0x1FFFFC00)();
         }
 
-        operation = ARM11_READY;
+        *operation = NO_ARM11_OPERATION;
     }
 }

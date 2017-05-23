@@ -5,8 +5,8 @@
 _start:
 b start
 
-.global operation
-operation:
+.global arm11SectionStarted
+arm11SectionStarted:
     .word 0
 
 start:
@@ -18,6 +18,10 @@ start:
 .type   prepareForFirmlaunch, %function
 prepareForFirmlaunch:
     mov r0, #0x20000000
+
+    mov r1, #0
+    str r1, [r0, #-4]       @ entrypoint
+    str r1, [r0, #-0x10]    @ operation
 
     _wait_for_core0_entrypoint_loop:
         ldr r1, [r0, #-4]   @ check if core0's entrypoint is 0
