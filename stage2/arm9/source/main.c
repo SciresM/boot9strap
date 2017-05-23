@@ -16,9 +16,7 @@
 #define A11_ENTRYPOINT  0x1FFFFFFC
 
 static void (*const itcmStub)(Firm *firm, bool isNand) = (void (*const)(Firm *, bool))0x01FF8000;
-
-static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FFFFFF0;
-static volatile u8 *syncState = (volatile u8 *)0x1FFFFFF1;
+static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FF80204;
 
 static void shutdown(void)
 {
@@ -29,9 +27,9 @@ static void shutdown(void)
 
 static void invokeArm11Function(Arm11Operation op)
 {
-    while(*operation != NO_ARM11_OPERATION);
+    while(*operation != ARM11_READY);
     *operation = op;
-    while(*operation != NO_ARM11_OPERATION); 
+    while(*operation != ARM11_READY); 
 }
 
 static void loadFirm(bool isNand)
@@ -75,12 +73,6 @@ static void loadFirm(bool isNand)
 
 void main(void)
 {
-    //Sync with the arm11
-
-    while(*syncState != 1);
-    *syncState = 2;
-    while(*syncState != 3);
-
     setupKeyslots();
 
     if(mountSd())

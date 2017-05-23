@@ -3,6 +3,13 @@
 .global _start
 .type   _start, %function
 _start:
+b start
+
+.global operation
+operation:
+    .word 0
+
+start:
     cpsid aif
     ldr sp, =__stack_top__
     b main
@@ -10,7 +17,6 @@ _start:
 .global prepareForFirmlaunch
 .type   prepareForFirmlaunch, %function
 prepareForFirmlaunch:
-    @ zero'ing out core0's entrypoint has already been done
     ldr r0, =0x1FFFFFFC
 
     _wait_for_core0_entrypoint_loop:
