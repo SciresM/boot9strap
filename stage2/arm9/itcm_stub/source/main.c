@@ -24,27 +24,30 @@
 
 void main(Firm *firm, bool isNand)
 {
-    const char *argv[2];
+    u32 argc;
+    char *argv[2];
+    struct fb fbs[2] =
+    {
+        {
+            .top_left  = (u8 *)0x18300000,
+            .top_right = (u8 *)0x18300000,
+            .bottom    = (u8 *)0x18346500,
+        },
+        {
+            .top_left  = (u8 *)0x18400000,
+            .top_right = (u8 *)0x18400000,
+            .bottom    = (u8 *)0x18446500,
+        },
+    };
+
     argv[0] = isNand ? "nand:/boot.firm" : "sdmc:/boot.firm";
 
     if(firm->reserved2[0] & 1)
     {
-        struct fb fbs[2] = {
-            {
-                .top_left  = (u8 *)0x18300000,
-                .top_right = (u8 *)0x18300000,
-                .bottom    = (u8 *)0x18346500,
-            },
-            {
-                .top_left  = (u8 *)0x18400000,
-                .top_right = (u8 *)0x18400000,
-                .bottom    = (u8 *)0x18446500,
-            },
-        };
-
+        argc = 2;
         argv[1] = (char *)&fbs;
-        launchFirm(firm, 2, (char **)argv);
     }
-    else
-        launchFirm(firm, 1, (char **)argv);
+    else argc = 1;
+
+    launchFirm(firm, argc, argv);
 }
