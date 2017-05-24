@@ -108,10 +108,9 @@
 #define CFG_TWLUNITINFO     (*(vu8  *)0x10010014)
 #define OTP_DEVCONSOLEID    (*(vu64 *)0x10012000)
 #define OTP_TWLCONSOLEID    (*(vu64 *)0x10012100)
-#define PDN_MPCORE_CFG      (*(vu32 *)0x10140FFC)
-#define PDN_SPI_CNT         (*(vu32 *)0x101401C0)
+#define CFG11_SOCINFO       (*(vu32 *)0x10140FFC)
 
-#define ISN3DS (PDN_MPCORE_CFG == 7)
+#define ISN3DS    (CFG11_SOCINFO & 2)
 #define ISDEVUNIT (CFG_UNITINFO != 0)
 
 void sha(void *res, const void *src, u32 size, u32 mode);
