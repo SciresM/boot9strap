@@ -26,11 +26,18 @@
 
 static __attribute__((noinline)) bool overlaps(u32 as, u32 ae, u32 bs, u32 be)
 {
-    if (as <= bs && bs <= ae)
+    if(as <= bs && bs <= ae)
         return true;
-    else if (bs <= as && as <= be)
+    if(bs <= as && as <= be)
         return true;
     return false;
+}
+
+static __attribute__((noinline)) bool inRange(u32 as, u32 ae, u32 bs, u32 be)
+{
+   if(as >= bs && ae <= be)
+        return true;
+   return false;
 }
 
 bool checkFirmHeader(Firm *firmHeader)
@@ -56,10 +63,12 @@ bool checkFirmHeader(Firm *firmHeader)
         if((section->offset < 0x200) ||
            (section->address + section->size < section->address) || //Overflow check
            ((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF) || //Alignment check
-           (overlaps((u32)section->address, (u32)section->address + section->size, 0x01FF8000, 0x01FF8000 + 0x8000)) ||
-           (overlaps((u32)section->address, (u32)section->address + section->size, 0x1FFFFC00, 0x20000000)) ||
-           ((firmHeader->reserved2[0] & 2) && overlaps((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x30000000)) ||
-           (overlaps((u32)section->address, (u32)section->address + section->size, (u32)firmHeader + section->offset, (u32)firmHeader + size)))
+           (overlaps((u32)section->address, (u32)section->address + section->size, (u32)firmHeader + section->offset, (u32)firmHeader + size)) ||
+           ((!inRange((u32)section->address, (u32)section->address + section->size, 0x08000000, 0x08000000 + 0x00180000)) &&
+            (!inRange((u32)section->address, (u32)section->address + section->size, 0x18000000, 0x18000000 + 0x00600000)) &&
+            (!inRange((u32)section->address, (u32)section->address + section->size, 0x1FF00000, 0x1FFFFC00)) &&
+            (!inRange((u32)section->address, (u32)section->address + section->size, 0x18000000, 0x18000000 + 0x00600000)) &&
+            (!((!(firmHeader->reserved2[0] & 2)) && inRange((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x20000000 + 0x10000000)))))
             return false;
 
         if(firmHeader->arm9Entry >= section->address && firmHeader->arm9Entry < (section->address + section->size))
