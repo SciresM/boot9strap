@@ -23,8 +23,8 @@ typedef volatile u64 vu64;
 
 typedef enum
 {
-    NO_ARM11_OPERATION = 0,
-    INIT_SCREENS,
+    INIT_SCREENS = 0,
     WAIT_BOOTROM11_LOCKED,
     PREPARE_ARM11_FOR_FIRMLAUNCH,
+    ARM11_READY
 } Arm11Operation;
