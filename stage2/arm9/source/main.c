@@ -12,9 +12,6 @@
 #include "buttons.h"
 #include "../build/bundled.h"
 
-#define A11_PAYLOAD_LOC 0x1FFFE000 //Keep in mind this needs to be changed in the ld script for arm11 too
-#define A11_ENTRYPOINT  0x1FFFFFFC
-
 static void (*const itcmStub)(Firm *firm, bool isNand) = (void (*const)(Firm *, bool))0x01FF8000;
 static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FF80204;
 

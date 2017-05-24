@@ -24,10 +24,10 @@
 .align 4
 .global _start
 _start:
-    @ Disable interrupts
-    mrs r0, cpsr
-    orr r0, #0x1C0
-    msr cpsr_cx, r0
+    @ Disable interrupts and switch to supervisor mode (also clear flags)
+    mov r4, #0x13
+    orr r4, #0x1C0
+    msr cpsr_cxsf, r4
 
     @ Change the stack pointer
     ldr sp, =__stack_top__
@@ -39,9 +39,12 @@ _start:
     bic r0, #(1<<0)            @ - mpu disable
     mcr p15, 0, r0, c1, c0, 0  @ write control register
 
-    @ Flush caches
-    bl flushEntireDCache
-    bl flushEntireICache
+    @ Invalidate both caches, discarding any data they may contain,
+    @ then drain the write buffer
+    mov r4, #0
+    mcr p15, 0, r4, c7, c5, 0
+    mcr p15, 0, r4, c7, c6, 0
+    mcr p15, 0, r4, c7, c10, 4
 
     @ Give read/write access to all the memory regions
     ldr r0, =0x33333333

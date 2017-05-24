@@ -25,8 +25,7 @@ start:
     @ Invalidate all caches, flush the prefetch buffer and DSB
     mov r0, #0
     mcr p15, 0, r0, c7, c5, 4
-    mcr p15, 0, r0, c7, c5, 0
-    mcr p15, 0, r0, c7, c6, 0
+    mcr p15, 0, r0, c7, c7, 0
     mcr p15, 0, r0, c7, c10, 4
 
     @ Clear BSS
