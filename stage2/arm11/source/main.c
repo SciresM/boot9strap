@@ -8,7 +8,7 @@ extern u32 prepareForFirmlaunchSize;
 
 extern volatile Arm11Operation operation;
 
-void initScreens(void)
+static void initScreens(void)
 {
     *(vu32 *)0x10141200 = 0x1007F;
     *(vu32 *)0x10202014 = 0x00000001;
@@ -147,8 +147,7 @@ void main(void)
             case PREPARE_ARM11_FOR_FIRMLAUNCH:
                 memcpy((void *)0x1FFFFC00, (void *)prepareForFirmlaunch, prepareForFirmlaunchSize);
                 *(vu32 *)0x1FFFFFFC = 0;
-                operation = ARM11_READY;
-                ((void (*)(void))0x1FFFFC00)();
+                ((void (*)(u32, volatile Arm11Operation *))0x1FFFFC00)(ARM11_READY, &operation);
         }
 
         operation = ARM11_READY;
