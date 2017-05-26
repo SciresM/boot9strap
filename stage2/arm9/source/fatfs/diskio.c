@@ -37,25 +37,13 @@ DSTATUS disk_initialize (
 	BYTE pdrv				/* Physical drive nmuber to identify the drive */
 )
 {
-        DSTATUS ret;
         static u32 sdmmcInitResult = 4;
 
         if(sdmmcInitResult == 4) sdmmcInitResult = sdmmc_sdcard_init();
 
-        if(pdrv == CTRNAND)
-        {
-            if(!(sdmmcInitResult & 1))
-            {
-                ctrNandInit();
-                ret = 0;
-            }
-            else ret = STA_NOINIT;
-        }
-        else ret = (!(sdmmcInitResult & 2)) ? 0 : STA_NOINIT;
-
-	return ret;
+	return ((pdrv == SDCARD && !(sdmmcInitResult & 2)) ||
+                (pdrv == CTRNAND && !(sdmmcInitResult & 1) && !ctrNandInit())) ? 0 : STA_NOINIT;
 }
-
 
 
 /*-----------------------------------------------------------------------*/
@@ -95,8 +83,7 @@ DRESULT disk_write (
 	UINT count			/* Number of sectors to write */
 )
 {
-        return ((pdrv == SDCARD && !sdmmc_sdcard_writesectors(sector, count, buff)) ||
-                (pdrv == CTRNAND && false)) ? RES_OK : RES_PARERR;
+        return (pdrv == SDCARD && !sdmmc_sdcard_writesectors(sector, count, buff)) ? RES_OK : RES_PARERR;
 }
 #endif
 

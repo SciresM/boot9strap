@@ -114,8 +114,7 @@
 #define ISDEVUNIT (CFG_UNITINFO != 0)
 
 void sha(void *res, const void *src, u32 size, u32 mode);
-void aes(void *dst, const void *src, u32 blockCount, void *iv, u32 mode, u32 ivMode);
 
-void ctrNandInit(void);
+int ctrNandInit(void);
 int ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf);
 void setupKeyslots(void);

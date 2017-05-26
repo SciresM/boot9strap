@@ -227,7 +227,7 @@ static void aes_batch(void *dst, const void *src, u32 blockCount)
     }
 }
 
-void aes(void *dst, const void *src, u32 blockCount, void *iv, u32 mode, u32 ivMode)
+static void aes(void *dst, const void *src, u32 blockCount, void *iv, u32 mode, u32 ivMode)
 {
     *REG_AESCNT =   mode |
                     AES_CNT_INPUT_ORDER | AES_CNT_OUTPUT_ORDER |
@@ -317,9 +317,9 @@ void sha(void *res, const void *src, u32 size, u32 mode)
 
 __attribute__((aligned(4))) static u8 nandCtr[AES_BLOCK_SIZE];
 static u8 nandSlot;
-static u32 fatStart;
+static u32 fatStart = 0;
 
-void ctrNandInit(void)
+int ctrNandInit(void)
 {
     __attribute__((aligned(4))) u8 cid[AES_BLOCK_SIZE],
                                    shaSum[SHA_256_HASH_SIZE];
@@ -328,16 +328,29 @@ void ctrNandInit(void)
     sha(shaSum, cid, sizeof(cid), SHA_256_MODE);
     memcpy(nandCtr, shaSum, sizeof(nandCtr));
 
-    if(ISN3DS)
+    nandSlot = ISN3DS ? 0x05 : 0x04;
+
+    int result;
+    u8 __attribute__((aligned(4))) temp[0x200];
+
+    //Read NCSD header
+    result = sdmmc_nand_readsectors(0, 1, temp);
+
+    if(!result)
     {
-        nandSlot = 0x05;
-        fatStart = 0x5CAD7;
+        u32 partitionNum = 1; //TWL partitions need to be first
+        for(u8 *partitionId = temp + 0x111; *partitionId != 1; partitionId++, partitionNum++);
+
+        u32 ctrMbrOffset = *((u32 *)(temp + 0x120) + (2 * partitionNum));
+
+        //Read CTR MBR
+        result = ctrNandRead(ctrMbrOffset, 1, temp);
+
+        //Calculate final CTRNAND FAT offset
+        if(!result) fatStart = ctrMbrOffset + *(u32 *)(temp + 0x1C6);
     }
-    else
-    {
-        nandSlot = 0x04;
-        fatStart = 0x5CAE5;
-    }
+
+    return result;
 }
 
 int ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf)
