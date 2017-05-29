@@ -62,17 +62,19 @@
 #define AES_CNT_FLUSH_READ      0x00000800
 #define AES_CNT_FLUSH_WRITE     0x00000400
 
-#define AES_INPUT_BE        (AES_CNT_INPUT_ENDIAN)
-#define AES_INPUT_LE        0
-#define AES_INPUT_NORMAL    (AES_CNT_INPUT_ORDER)
-#define AES_INPUT_REVERSED  0
+#define AES_INPUT_BE            (AES_CNT_INPUT_ENDIAN)
+#define AES_INPUT_LE            0
+#define AES_INPUT_NORMAL        (AES_CNT_INPUT_ORDER)
+#define AES_INPUT_REVERSED      0
+#define AES_INPUT_TWLNORMAL     0
+#define AES_INPUT_TWLREVERSED   (AES_CNT_INPUT_ORDER)
 
 #define AES_BLOCK_SIZE      0x10
 
 #define AES_KEYCNT_WRITE    (1 << 0x7)
 #define AES_KEYNORMAL       0
-#define AES_KEYX        1
-#define AES_KEYY        2
+#define AES_KEYX            1
+#define AES_KEYY            2
 
 /**************************SHA****************************/
 #define REG_SHA_CNT         ((vu32 *)0x1000A000)
