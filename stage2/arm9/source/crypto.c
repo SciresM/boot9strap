@@ -410,10 +410,11 @@ void setupKeyslots(void)
         //Setup 0x05 KeyY
         __attribute__((aligned(4))) u8 keyY0x5[AES_BLOCK_SIZE] =  {0x4D, 0x80, 0x4F, 0x4E, 0x99, 0x90, 0x19, 0x46, 0x13, 0xA2, 0x04, 0xAC, 0x58, 0x44, 0x60, 0xBE};
         aes_setkey(0x05, keyY0x5,  AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
-
-        //Setup TWL keys
-        twlConsoleInfoInit();
     }
+
+
+    //Setup TWL keys
+    twlConsoleInfoInit();
 
     //Set 0x11 keyslot
     __attribute__((aligned(4))) const u8 key1s[2][AES_BLOCK_SIZE] = {
