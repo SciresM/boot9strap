@@ -26,6 +26,22 @@ static void initScreens(void)
     i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
 }
 
+static void loadFirmOnce(void)
+{
+    if(fileRead(firm, "bootonce.firm", MAX_FIRM_SIZE) != 0)
+    {
+        if(checkFirm(firm))
+        {
+            const char *argv[1];
+            argv[0] = "sdmc:/bootonce.firm";
+            fileDelete("bootonce.firm");
+            
+            if(firm->reserved2[0] & 1) initScreens();
+            launchFirm(firm, 1, (char **)argv);
+        }
+    }
+}
+
 static void loadFirm(bool isNand)
 {
     if(fileRead(firm, "boot.firm", MAX_FIRM_SIZE) != 0)
@@ -55,6 +71,7 @@ void main(void)
             fileWrite((void *)0x10012000, "boot9strap/otp.bin", 0x100);
         }
 
+        loadFirmOnce();
         loadFirm(false);
         unmountSd();
     }
