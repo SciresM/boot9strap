@@ -40,17 +40,17 @@ static __attribute__((noinline)) bool inRange(u32 as, u32 ae, u32 bs, u32 be)
    return false;
 }
 
-bool checkFirmHeader(Firm *firmHeader)
+u32 checkFirmHeader(Firm *firmHeader)
 {
     if(memcmp(firmHeader->magic, "FIRM", 4) != 0 || firmHeader->arm9Entry == NULL) //Allow for the ARM11 entrypoint to be zero in which case nothing is done on the ARM11 side
-        return false;
-
-    u32 size = 0x200;
-    for(u32 i = 0; i < 4; i++)
-        size += firmHeader->section[i].size;
+        return 0;
 
     bool arm9EpFound = false,
          arm11EpFound = false;
+
+    u32 size = 0x200;
+    for(u32 i = 0; i < 4; i++)		
+        size += firmHeader->section[i].size;
 
     for(u32 i = 0; i < 4; i++)
     {
@@ -69,7 +69,7 @@ bool checkFirmHeader(Firm *firmHeader)
             (!inRange((u32)section->address, (u32)section->address + section->size, 0x1FF00000, 0x1FFFFC00)) &&
             (!inRange((u32)section->address, (u32)section->address + section->size, 0x18000000, 0x18000000 + 0x00600000)) &&
             (!((!(firmHeader->reserved2[0] & 2)) && inRange((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x20000000 + 0x8000000)))))
-            return false;
+            return 0;
 
         if(firmHeader->arm9Entry >= section->address && firmHeader->arm9Entry < (section->address + section->size))
             arm9EpFound = true;
@@ -78,7 +78,7 @@ bool checkFirmHeader(Firm *firmHeader)
             arm11EpFound = true;
     }
 
-    return arm9EpFound && (firmHeader->arm11Entry == NULL || arm11EpFound);
+    return (arm9EpFound && (firmHeader->arm11Entry == NULL || arm11EpFound)) ? size : 0;
 }
 
 bool checkSectionHashes(Firm *firm)

@@ -33,7 +33,10 @@ static void loadFirm(bool isNand)
 {
     Firm *firmHeader = (Firm *)0x080A0000;
     if(fileRead(firmHeader, "boot.firm", 0x200, 0) != 0x200) return;
-    if(!checkFirmHeader(firmHeader)) shutdown();
+
+    u32 calculatedFirmSize = checkFirmHeader(firmHeader);
+
+    if(!calculatedFirmSize) shutdown();
 
     Firm *firm;
     u32 maxFirmSize;
@@ -54,7 +57,7 @@ static void loadFirm(bool isNand)
         maxFirmSize = 0x77000;
     }
 
-    if(fileRead(firm, "boot.firm", 0, maxFirmSize) <= 0x200 || !checkSectionHashes(firm)) shutdown();
+    if(fileRead(firm, "boot.firm", 0, maxFirmSize) != calculatedFirmSize || !checkSectionHashes(firm)) shutdown();
     if(firm->reserved2[0] & 1)
     {
         invokeArm11Function(INIT_SCREENS);
