@@ -63,7 +63,6 @@ u32 checkFirmHeader(Firm *firmHeader, u32 firmBufferAddr, bool isPreLockout)
         if((section->offset < 0x200) ||
            (section->address + section->size < section->address) || //Overflow check
            ((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF) || //Alignment check
-           (overlaps((u32)section->address, (u32)section->address + section->size, (u32)firmHeader, (u32)firmHeader + 0x200)) ||
            (overlaps((u32)section->address, (u32)section->address + section->size, firmBufferAddr, firmBufferAddr + size)) ||
            ((!inRange((u32)section->address, (u32)section->address + section->size, 0x08000000, 0x08000000 + 0x00100000)) &&
             (!inRange((u32)section->address, (u32)section->address + section->size, 0x18000000, 0x18000000 + 0x00600000)) &&
