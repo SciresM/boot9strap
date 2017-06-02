@@ -48,12 +48,13 @@ static void loadFirm(bool isNand)
         invokeArm11Function(WAIT_BOOTROM11_LOCKED);
 
         firm = (Firm *)0x20001000;
-        maxFirmSize = 0x07FFF000;
+        maxFirmSize = 0x07FFF000; //around 127MB (although we don't enable ext FCRAM on N3DS, beware!)
     }
     else
     {
-        firm = (Firm *)0x08080000;
-        maxFirmSize = 0x77000;
+        //Uncached area, shouldn't affect performance too much, though
+        firm = (Firm *)0x18000000;
+        maxFirmSize = 0x300000; //3MB
     }
 
     u32 calculatedFirmSize = checkFirmHeader(firmHeader, (u32)firm, isPreLockout);
