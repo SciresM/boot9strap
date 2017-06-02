@@ -42,6 +42,11 @@ static void loadFirm(bool isNand)
 
     if(!isPreLockout)
     {
+        //Lockout
+        while(!(CFG9_SYSPROT9  & 1)) CFG9_SYSPROT9  |= 1;
+        while(!(CFG9_SYSPROT11 & 1)) CFG9_SYSPROT11 |= 1;
+        invokeArm11Function(WAIT_BOOTROM11_LOCKED);
+
         firm = (Firm *)0x20001000;
         maxFirmSize = 0x07FFF000;
     }
@@ -51,17 +56,9 @@ static void loadFirm(bool isNand)
         maxFirmSize = 0x77000;
     }
 
-    u32 calculatedFirmSize = checkFirmHeader(firmHeader, (u32)firm);
+    u32 calculatedFirmSize = checkFirmHeader(firmHeader, (u32)firm, isPreLockout);
 
     if(!calculatedFirmSize) shutdown();
-
-    if(!isPreLockout)
-    {
-        //Lockout
-        while(!(CFG9_SYSPROT9  & 1)) CFG9_SYSPROT9  |= 1;
-        while(!(CFG9_SYSPROT11 & 1)) CFG9_SYSPROT11 |= 1;
-        invokeArm11Function(WAIT_BOOTROM11_LOCKED);
-    }
 
     if(fileRead(firm, "boot.firm", 0, maxFirmSize) != calculatedFirmSize || !checkSectionHashes(firm)) shutdown();
 

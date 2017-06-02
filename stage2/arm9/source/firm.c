@@ -40,7 +40,7 @@ static __attribute__((noinline)) bool inRange(u32 as, u32 ae, u32 bs, u32 be)
    return false;
 }
 
-u32 checkFirmHeader(Firm *firmHeader, u32 firmBufferAddr)
+u32 checkFirmHeader(Firm *firmHeader, u32 firmBufferAddr, bool isPreLockout)
 {
     if(memcmp(firmHeader->magic, "FIRM", 4) != 0 || firmHeader->arm9Entry == NULL) //Allow for the ARM11 entrypoint to be zero in which case nothing is done on the ARM11 side
         return 0;
@@ -68,8 +68,7 @@ u32 checkFirmHeader(Firm *firmHeader, u32 firmBufferAddr)
            ((!inRange((u32)section->address, (u32)section->address + section->size, 0x08000000, 0x08000000 + 0x00100000)) &&
             (!inRange((u32)section->address, (u32)section->address + section->size, 0x18000000, 0x18000000 + 0x00600000)) &&
             (!inRange((u32)section->address, (u32)section->address + section->size, 0x1FF00000, 0x1FFFFC00)) &&
-            (!inRange((u32)section->address, (u32)section->address + section->size, 0x18000000, 0x18000000 + 0x00600000)) &&
-            (!((!(firmHeader->reserved2[0] & 2)) && inRange((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x20000000 + 0x8000000)))))
+            (!(!isPreLockout && inRange((u32)section->address, (u32)section->address + section->size, 0x20000000, 0x20000000 + 0x8000000)))))
             return 0;
 
         if(firmHeader->arm9Entry >= section->address && firmHeader->arm9Entry < (section->address + section->size))
