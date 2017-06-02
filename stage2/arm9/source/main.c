@@ -34,20 +34,14 @@ static void loadFirm(bool isNand)
     Firm *firmHeader = (Firm *)0x080A0000;
     if(fileRead(firmHeader, "boot.firm", 0x200, 0) != 0x200) return;
 
-    u32 calculatedFirmSize = checkFirmHeader(firmHeader);
-
-    if(!calculatedFirmSize) shutdown();
+    bool isPreLockout = ((firmHeader->reserved2[0] & 2) != 0),
+         isScreenInit = ((firmHeader->reserved2[0] & 1) != 0);
 
     Firm *firm;
     u32 maxFirmSize;
 
-    if(!(firmHeader->reserved2[0] & 2))
+    if(!isPreLockout)
     {
-        //Lockout
-        while(!(CFG9_SYSPROT9  & 1)) CFG9_SYSPROT9  |= 1;
-        while(!(CFG9_SYSPROT11 & 1)) CFG9_SYSPROT11 |= 1;
-        invokeArm11Function(WAIT_BOOTROM11_LOCKED);
-
         firm = (Firm *)0x20001000;
         maxFirmSize = 0x07FFF000;
     }
@@ -57,8 +51,21 @@ static void loadFirm(bool isNand)
         maxFirmSize = 0x77000;
     }
 
+    u32 calculatedFirmSize = checkFirmHeader(firmHeader, (u32)firm);
+
+    if(!calculatedFirmSize) shutdown();
+
+    if(!isPreLockout)
+    {
+        //Lockout
+        while(!(CFG9_SYSPROT9  & 1)) CFG9_SYSPROT9  |= 1;
+        while(!(CFG9_SYSPROT11 & 1)) CFG9_SYSPROT11 |= 1;
+        invokeArm11Function(WAIT_BOOTROM11_LOCKED);
+    }
+
     if(fileRead(firm, "boot.firm", 0, maxFirmSize) != calculatedFirmSize || !checkSectionHashes(firm)) shutdown();
-    if(firm->reserved2[0] & 1)
+
+    if(isScreenInit)
     {
         invokeArm11Function(INIT_SCREENS);
         i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight

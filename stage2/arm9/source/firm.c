@@ -40,7 +40,7 @@ static __attribute__((noinline)) bool inRange(u32 as, u32 ae, u32 bs, u32 be)
    return false;
 }
 
-u32 checkFirmHeader(Firm *firmHeader)
+u32 checkFirmHeader(Firm *firmHeader, u32 firmBufferAddr)
 {
     if(memcmp(firmHeader->magic, "FIRM", 4) != 0 || firmHeader->arm9Entry == NULL) //Allow for the ARM11 entrypoint to be zero in which case nothing is done on the ARM11 side
         return 0;
@@ -63,7 +63,8 @@ u32 checkFirmHeader(Firm *firmHeader)
         if((section->offset < 0x200) ||
            (section->address + section->size < section->address) || //Overflow check
            ((u32)section->address & 3) || (section->offset & 0x1FF) || (section->size & 0x1FF) || //Alignment check
-           (overlaps((u32)section->address, (u32)section->address + section->size, (u32)firmHeader + section->offset, (u32)firmHeader + size)) ||
+           (overlaps((u32)section->address, (u32)section->address + section->size, (u32)firmHeader, (u32)firmHeader + 0x200)) ||
+           (overlaps((u32)section->address, (u32)section->address + section->size, firmBufferAddr, firmBufferAddr + size)) ||
            ((!inRange((u32)section->address, (u32)section->address + section->size, 0x08000000, 0x08000000 + 0x00100000)) &&
             (!inRange((u32)section->address, (u32)section->address + section->size, 0x18000000, 0x18000000 + 0x00600000)) &&
             (!inRange((u32)section->address, (u32)section->address + section->size, 0x1FF00000, 0x1FFFFC00)) &&

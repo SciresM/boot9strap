@@ -43,5 +43,5 @@ typedef struct __attribute__((packed))
     FirmSection section[4];
 } Firm;
 
-u32 checkFirmHeader(Firm *firmHeader);
+u32 checkFirmHeader(Firm *firmHeader, u32 firmBufferAddr);
 bool checkSectionHashes(Firm *firm);
