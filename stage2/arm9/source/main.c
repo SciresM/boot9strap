@@ -73,11 +73,7 @@ void main(void)
 {
     setupKeyslots();
 
-    if(HID_PAD == NTRBOOT_BUTTONS && !(i2cReadRegister(I2C_DEV_MCU, 0xF) & 2))
-    {
-        while(HID_PAD & NTRBOOT_BUTTONS);
-        wait(2000ULL);
-    }
+    
 
     if(mountSd())
     {
@@ -96,7 +92,15 @@ void main(void)
         unmountSd();
     }
 
-    if(mountCtrNand()) loadFirm(true);
+    if(mountCtrNand())
+    {
+        if(HID_PAD == NTRBOOT_BUTTONS && !(i2cReadRegister(I2C_DEV_MCU, 0xF) & 2))
+        {
+            while(HID_PAD & NTRBOOT_BUTTONS);
+            wait(2000ULL);
+        }
+        loadFirm(true);
+    }
 
     mcuPowerOff();
 }
