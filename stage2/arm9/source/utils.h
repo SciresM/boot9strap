@@ -20,24 +20,18 @@
 *   Notices displayed by works containing it.
 */
 
+/*
+*   waitInput function based on code by d0k3 https://github.com/d0k3/Decrypt9WIP/blob/master/source/hid.c
+*/
+
 #pragma once
 
 #include "types.h"
 
-#define HID_PAD                (*(vu32 *)0x10146000 ^ 0xFFF)
+#define TICKS_PER_SEC       67027964ULL
+#define REG_TIMER_CNT(i)    *(vu16 *)(0x10003002 + 4 * i)
+#define REG_TIMER_VAL(i)    *(vu16 *)(0x10003000 + 4 * i)
 
-#define BUTTON_R1              (1 << 8)
-#define BUTTON_L1              (1 << 9)
-#define BUTTON_A               (1 << 0)
-#define BUTTON_B               (1 << 1)
-#define BUTTON_X               (1 << 10)
-#define BUTTON_Y               (1 << 11)
-#define BUTTON_SELECT          (1 << 2)
-#define BUTTON_START           (1 << 3)
-#define BUTTON_RIGHT           (1 << 4)
-#define BUTTON_LEFT            (1 << 5)
-#define BUTTON_UP              (1 << 6)
-#define BUTTON_DOWN            (1 << 7)
-
-#define NTRBOOT_BUTTONS (BUTTON_START | BUTTON_SELECT | BUTTON_X)
-#define DUMP_BUTTONS    (NTRBOOT_BUTTONS | BUTTON_Y)
+void mcuPowerOff(void);
+void wait(u64 amount);
+void error(const char *fmt, ...);

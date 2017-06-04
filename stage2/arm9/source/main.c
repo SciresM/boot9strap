@@ -9,18 +9,12 @@
 #include "cache.h"
 #include "fs.h"
 #include "firm.h"
+#include "utils.h"
 #include "buttons.h"
 #include "../build/bundled.h"
 
 static void (*const itcmStub)(Firm *firm, bool isNand) = (void (*const)(Firm *, bool))0x01FF8000;
 static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FF80204;
-
-static void shutdown(void)
-{
-    flushEntireDCache();
-    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
-    while(true);
-}
 
 static void invokeArm11Function(Arm11Operation op)
 {
@@ -59,14 +53,15 @@ static void loadFirm(bool isNand)
 
     u32 calculatedFirmSize = checkFirmHeader(firmHeader, (u32)firm, isPreLockout);
 
-    if(!calculatedFirmSize) shutdown();
+    if(!calculatedFirmSize) mcuPowerOff();
 
-    if(fileRead(firm, "boot.firm", 0, maxFirmSize) != calculatedFirmSize || !checkSectionHashes(firm)) shutdown();
+    if(fileRead(firm, "boot.firm", 0, maxFirmSize) != calculatedFirmSize || !checkSectionHashes(firm)) mcuPowerOff();
 
     if(isScreenInit)
     {
         invokeArm11Function(INIT_SCREENS);
         i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
+        wait(3ULL);
     }
 
     memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
@@ -80,16 +75,23 @@ void main(void)
 {
     setupKeyslots();
 
+    u32 comboButtons = HID_PAD & DUMP_BUTTONS;
+
+    if(comboButtons == NTRBOOT_BUTTONS)
+    {
+        while(HID_PAD & NTRBOOT_BUTTONS);
+        wait(2000ULL);
+    }
+
     if(mountSd())
     {
-        //I believe this is the canonical secret key combination
-        if((HID_PAD & SECRET_BUTTONS) == SECRET_BUTTONS)
+        if(comboButtons == DUMP_BUTTONS)
         {
             fileWrite((void *)0x08080000, "boot9strap/boot9.bin", 0x10000);
             fileWrite((void *)0x08090000, "boot9strap/boot11.bin", 0x10000);
             fileWrite((void *)0x10012000, "boot9strap/otp.bin", 0x100);
 
-            shutdown();
+            mcuPowerOff();
         }
 
         loadFirm(false);
@@ -98,5 +100,5 @@ void main(void)
 
     if(mountCtrNand()) loadFirm(true);
 
-    shutdown();
+    mcuPowerOff();
 }

@@ -20,24 +20,46 @@
 *   Notices displayed by works containing it.
 */
 
-#pragma once
+/*
+*   waitInput function based on code by d0k3 https://github.com/d0k3/Decrypt9WIP/blob/master/source/hid.c
+*/
 
-#include "types.h"
+#include "utils.h"
+#include "i2c.h"
+#include "cache.h"
 
-#define HID_PAD                (*(vu32 *)0x10146000 ^ 0xFFF)
+static inline void startChrono(void)
+{
+    REG_TIMER_CNT(0) = 0; //67MHz
+    for(u32 i = 1; i < 4; i++) REG_TIMER_CNT(i) = 4; //Count-up
 
-#define BUTTON_R1              (1 << 8)
-#define BUTTON_L1              (1 << 9)
-#define BUTTON_A               (1 << 0)
-#define BUTTON_B               (1 << 1)
-#define BUTTON_X               (1 << 10)
-#define BUTTON_Y               (1 << 11)
-#define BUTTON_SELECT          (1 << 2)
-#define BUTTON_START           (1 << 3)
-#define BUTTON_RIGHT           (1 << 4)
-#define BUTTON_LEFT            (1 << 5)
-#define BUTTON_UP              (1 << 6)
-#define BUTTON_DOWN            (1 << 7)
+    for(u32 i = 0; i < 4; i++) REG_TIMER_VAL(i) = 0;
 
-#define NTRBOOT_BUTTONS (BUTTON_START | BUTTON_SELECT | BUTTON_X)
-#define DUMP_BUTTONS    (NTRBOOT_BUTTONS | BUTTON_Y)
+    REG_TIMER_CNT(0) = 0x80; //67MHz; enabled
+    for(u32 i = 1; i < 4; i++) REG_TIMER_CNT(i) = 0x84; //Count-up; enabled
+}
+
+static u64 chrono(void)
+{
+    u64 res = 0;
+    for(u32 i = 0; i < 4; i++) res |= REG_TIMER_VAL(i) << (16 * i);
+
+    res /= (TICKS_PER_SEC / 1000);
+
+    return res;
+}
+
+void mcuPowerOff(void)
+{
+    //Ensure that all memory transfers have completed and that the data cache has been flushed
+    flushEntireDCache();
+
+    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
+    while(true);
+}
+
+void wait(u64 amount)
+{
+    startChrono();
+    while(chrono() < amount);
+}
