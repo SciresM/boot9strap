@@ -6,7 +6,6 @@
 #include "memory.h"
 #include "crypto.h"
 #include "i2c.h"
-#include "cache.h"
 #include "fs.h"
 #include "firm.h"
 #include "utils.h"
@@ -75,9 +74,7 @@ void main(void)
 {
     setupKeyslots();
 
-    u32 comboButtons = HID_PAD & DUMP_BUTTONS;
-
-    if(comboButtons == NTRBOOT_BUTTONS)
+    if(HID_PAD == NTRBOOT_BUTTONS)
     {
         while(HID_PAD & NTRBOOT_BUTTONS);
         wait(2000ULL);
@@ -85,7 +82,7 @@ void main(void)
 
     if(mountSd())
     {
-        if(comboButtons == DUMP_BUTTONS)
+        if(HID_PAD == NTRBOOT_BUTTONS)
         {
             fileWrite((void *)0x08080000, "boot9strap/boot9.bin", 0x10000);
             fileWrite((void *)0x08090000, "boot9strap/boot11.bin", 0x10000);

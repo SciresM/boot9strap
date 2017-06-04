@@ -84,13 +84,15 @@ bool checkSectionHashes(Firm *firm)
 {
     for(u32 i = 0; i < 4; i++)
     {
-        __attribute__((aligned(4))) u8 hash[0x20];
         FirmSection *section = &firm->section[i];
 
         if(section->size == 0)
             continue;
-        
+
+        __attribute__((aligned(4))) u8 hash[0x20];
+
         sha(hash, (u8 *)firm + section->offset, section->size, SHA_256_MODE);
+
         if(memcmp(hash, section->hash, 0x20) != 0)
             return false;
     }
