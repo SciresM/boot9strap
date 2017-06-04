@@ -73,8 +73,6 @@ void main(void)
 {
     setupKeyslots();
 
-    
-
     if(mountSd())
     {
         /* I believe this is the canonical secret key combination. */
@@ -86,6 +84,7 @@ void main(void)
 
             /* Wait until buttons are not held, for compatibility. */
             while(HID_PAD & NTRBOOT_BUTTONS);
+            wait(1000ULL);
         }
 
         loadFirm(false);
@@ -94,10 +93,11 @@ void main(void)
 
     if(mountCtrNand())
     {
-        if(HID_PAD == NTRBOOT_BUTTONS && !(i2cReadRegister(I2C_DEV_MCU, 0xF) & 2))
+        /* Wait until buttons are not held, for compatibility. */
+        if(HID_PAD == NTRBOOT_BUTTONS)
         {
             while(HID_PAD & NTRBOOT_BUTTONS);
-            wait(2000ULL);
+            wait(1000ULL);
         }
         loadFirm(true);
     }

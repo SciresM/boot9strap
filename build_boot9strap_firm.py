@@ -20,7 +20,7 @@ def main(argc, argv):
         b9s.write(struct.pack('<III', 0x00000000, 0x1FF80200, 0x08001000))
         b9s.write(b'\x00' * 0x2C)
         # Write version value
-        b9s.write(b'\x01')
+        b9s.write(b'\x02')
         # Write boot9strap magic value
         b9s.write(b'B9S')
         ofs = 0x200
