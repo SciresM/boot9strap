@@ -30,6 +30,10 @@
 
 static inline void startChrono(void)
 {
+    static bool isChronoStarted = false;
+
+    if(isChronoStarted) return;
+
     REG_TIMER_CNT(0) = 0; //67MHz
     for(u32 i = 1; i < 4; i++) REG_TIMER_CNT(i) = 4; //Count-up
 
@@ -37,6 +41,8 @@ static inline void startChrono(void)
 
     REG_TIMER_CNT(0) = 0x80; //67MHz; enabled
     for(u32 i = 1; i < 4; i++) REG_TIMER_CNT(i) = 0x84; //Count-up; enabled
+
+    isChronoStarted = true;
 }
 
 static u64 chrono(void)
@@ -61,5 +67,8 @@ void mcuPowerOff(void)
 void wait(u64 amount)
 {
     startChrono();
-    while(chrono() < amount);
+
+    u64 initialValue = chrono();
+
+    while(chrono() - initialValue < amount);
 }
