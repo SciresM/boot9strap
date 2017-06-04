@@ -60,7 +60,6 @@ static void loadFirm(bool isNand)
     {
         invokeArm11Function(INIT_SCREENS);
         i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
-        wait(3ULL);
     }
 
     memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
@@ -74,7 +73,7 @@ void main(void)
 {
     setupKeyslots();
 
-    if(HID_PAD == NTRBOOT_BUTTONS)
+    if(HID_PAD == NTRBOOT_BUTTONS && !(i2cReadRegister(I2C_DEV_MCU, 0xF) & 2))
     {
         while(HID_PAD & NTRBOOT_BUTTONS);
         wait(2000ULL);
