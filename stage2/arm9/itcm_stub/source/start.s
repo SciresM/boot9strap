@@ -53,5 +53,5 @@ disableMpuAndJumpToEntrypoints:
     @ Jump to the ARM9 entrypoint
     mov r0, r4
     mov r1, r5
-    ldr r2, =0x1BEEF
+    ldr r2, =0x2BEEF
     bx r6
