@@ -13,6 +13,7 @@ dev_ntr_key = '4DAD2124C2D32973100FBFBD1604C6F1'
 
 def encrypt_firm_section(section, iv, is_dev=False):
     key = dev_ntr_key if is_dev else ntr_key
+    print(binascii.hexlify(iv))
     aes = AES.new(binascii.unhexlify(key), AES.MODE_CBC, iv)
     return aes.encrypt(section)
 
@@ -43,7 +44,7 @@ def build_b9s_firm(signature, is_dev=False, ntr_crypt=False):
         b9s += (hashlib.sha256(data).digest())
         ofs += len(data)
     b9s += binascii.unhexlify(signature)
-    for data in section_datas:
+    for i,data in enumerate(section_datas):
         if ntr_crypt:
             iv = struct.pack('<IIII', section_ofs_lst[i], load_addresses[i], len(data), len(data))
             b9s += encrypt_firm_section(data, iv, is_dev)
