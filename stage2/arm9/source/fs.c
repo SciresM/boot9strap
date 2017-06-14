@@ -69,7 +69,7 @@ bool fileWrite(const void *buffer, const char *path, u32 size)
     }
 }
 
-bool fileDelete(const char* path)
+bool fileDelete(const char *path)
 {
-    return (f_unlink(path) == FR_OK);
+    return f_unlink(path) == FR_OK;
 }
