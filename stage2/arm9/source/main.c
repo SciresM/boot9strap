@@ -24,8 +24,9 @@ static void invokeArm11Function(Arm11Operation op)
 
 static void loadFirm(bool isNand)
 {
+    static const char *firmName = "boot.firm";
     Firm *firmHeader = (Firm *)0x080A0000;
-    if(fileRead(firmHeader, "boot.firm", 0x200, 0) != 0x200) return;
+    if(fileRead(firmHeader, firmName, 0x200, 0) != 0x200) return;
 
     bool isPreLockout = ((firmHeader->reserved2[0] & 2) != 0),
          isScreenInit = ((firmHeader->reserved2[0] & 1) != 0);
@@ -54,7 +55,7 @@ static void loadFirm(bool isNand)
 
     if(!calculatedFirmSize) mcuPowerOff();
 
-    if(fileRead(firm, "boot.firm", 0, maxFirmSize) < calculatedFirmSize || !checkSectionHashes(firm)) mcuPowerOff();
+    if(fileRead(firm, firmName, 0, maxFirmSize) < calculatedFirmSize || !checkSectionHashes(firm)) mcuPowerOff();
 
     if(isScreenInit)
     {

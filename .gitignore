@@ -10,3 +10,4 @@ stage2/arm11/out
 *.o
 *.elf
 *.d
+.DS_Store
