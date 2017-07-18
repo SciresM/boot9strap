@@ -17,8 +17,6 @@ dir_out := out
 .PHONY: $(dir_build)
 .PHONY: $(dir_arm9_stage2)
 .PHONY: $(dir_arm11_stage2)
-.PHONY: build_boot9strap_firm.py
-.PHONY: boot9strap.s
 
 .PHONY: all
 .PHONY: boot9strap
@@ -27,44 +25,31 @@ dir_out := out
 all: boot9strap
 boot9strap: $(dir_out)/boot9strap.firm $(dir_out)/boot9strap_dev.firm $(dir_out)/boot9strap_ntr.firm $(dir_out)/boot9strap_ntr_dev.firm
 
-$(dir_out)/boot9strap.firm: $(dir_build)/code9.bin
-	@mkdir -p "out"
-	@firmtool build $@ \
-	-S nand-retail -g --b9s=2 \
+# In order: entrypoints, binary files for sections, section addresses and copy methods
+COMMON_FIRM_FLAGS := -g --b9s=2 \
 	-n 0x08001000 -e 0x1FF80200 \
 	-D $(dir_build)/code11.bin $(dir_build)/code9.bin $(dir_build)/NDMA.bin $(dir_build)/dabrt.bin \
 	-A 0x1FF80000 0x08000200 0x10002000 0xC0000000 \
 	-C memcpy memcpy memcpy memcpy
+
+$(dir_out)/boot9strap.firm: $(dir_build)/code9.bin
+	@mkdir -p "out"
+	@firmtool build $@ -S nand-retail $(COMMON_FIRM_FLAGS)
 	@echo "Succesfully built out/boot9strap.firm"
 
 $(dir_out)/boot9strap_dev.firm: $(dir_build)/code9.bin
 	@mkdir -p "out"
-	@firmtool build $@ \
-	-S nand-dev -g --b9s=2 \
-	-n 0x08001000 -e 0x1FF80200 \
-	-D $(dir_build)/code11.bin $(dir_build)/code9.bin $(dir_build)/NDMA.bin $(dir_build)/dabrt.bin \
-	-A 0x1FF80000 0x08000200 0x10002000 0xC0000000 \
-	-C memcpy memcpy memcpy memcpy
+	@firmtool build $@ -S nand-dev $(COMMON_FIRM_FLAGS)
 	@echo "Succesfully built out/boot9strap_dev.firm"
 
 $(dir_out)/boot9strap_ntr.firm: $(dir_build)/code9.bin
 	@mkdir -p "out"
-	@firmtool build $@ \
-	-S spi-retail -g --b9s=2 \
-	-n 0x08001000 -e 0x1FF80200 \
-	-D $(dir_build)/code11.bin $(dir_build)/code9.bin $(dir_build)/NDMA.bin $(dir_build)/dabrt.bin \
-	-A 0x1FF80000 0x08000200 0x10002000 0xC0000000 \
-	-C memcpy memcpy memcpy memcpy
+	@firmtool build $@ -S spi-retail $(COMMON_FIRM_FLAGS)
 	@echo "Succesfully built out/boot9strap_ntr.firm"
 
 $(dir_out)/boot9strap_ntr_dev.firm: $(dir_build)/code9.bin
 	@mkdir -p "out"
-	@firmtool build $@ \
-	-S spi-dev -g --b9s=2 \
-	-n 0x08001000 -e 0x1FF80200 \
-	-D $(dir_build)/code11.bin $(dir_build)/code9.bin $(dir_build)/NDMA.bin $(dir_build)/dabrt.bin \
-	-A 0x1FF80000 0x08000200 0x10002000 0xC0000000 \
-	-C memcpy memcpy memcpy memcpy
+	@firmtool build $@ -S spi-dev $(COMMON_FIRM_FLAGS)
 	@echo "Succesfully built out/boot9strap_ntr_dev.firm"
 
 # Also code11.bin, NDMA.bin, dabrt.bin
