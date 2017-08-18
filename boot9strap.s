@@ -115,7 +115,7 @@ ldr pc, [pc, #-0x4]
 .area 0x10000
 .incbin "stage2/arm9/out/arm9.bin"
 .endarea
-.align 0x10000
+.align 0x200
 
 .close
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
