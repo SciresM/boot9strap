@@ -85,7 +85,7 @@ void main(void)
 
             /* Wait until buttons are not held, for compatibility. */
             while(HID_PAD & NTRBOOT_BUTTONS);
-            wait(1000ULL);
+            wait(2000ULL);
         }
 
         loadFirm(false);
@@ -98,7 +98,7 @@ void main(void)
         if(HID_PAD == NTRBOOT_BUTTONS)
         {
             while(HID_PAD & NTRBOOT_BUTTONS);
-            wait(1000ULL);
+            wait(2000ULL);
         }
         loadFirm(true);
     }
