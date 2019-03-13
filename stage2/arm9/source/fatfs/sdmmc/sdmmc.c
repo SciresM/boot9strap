@@ -482,7 +482,7 @@ u32 sdmmc_sdcard_init()
 {
     u32 ret = 0;
     InitSD();
-    if(Nand_Init() != 0) ret &= 1;
-    if(SD_Init() != 0) ret &= 2;
+    if(Nand_Init() != 0) ret |= 1;
+    if(SD_Init() != 0) ret |= 2;
     return ret;
 }
