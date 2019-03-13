@@ -32,7 +32,7 @@ def build_b9s_firm(signature, is_dev=False, ntr_crypt=False):
     b9s += struct.pack('<III', 0x00000000, 0x1FF80200, 0x08001000)
     b9s += b'\x00' * 0x2C
     # Write version value
-    b9s += b'\x02'
+    b9s += b'\x03'
     # Write boot9strap magic value
     b9s += b'B9S'
     ofs = 0x200
