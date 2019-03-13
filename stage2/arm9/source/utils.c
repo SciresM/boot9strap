@@ -60,7 +60,7 @@ void mcuPowerOff(void)
     //Ensure that all memory transfers have completed and that the data cache has been flushed
     flushEntireDCache();
 
-    i2cWriteRegister(I2C_DEV_MCU, 0x20, 1 << 0);
+    I2C_writeReg(I2C_DEV_MCU, 0x20, 1 << 0);
     while(true);
 }
 

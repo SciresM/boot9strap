@@ -60,7 +60,7 @@ static void loadFirm(bool isNand)
     if(isScreenInit)
     {
         invokeArm11Function(INIT_SCREENS);
-        i2cWriteRegister(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
+        I2C_writeReg(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
     }
 
     memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
