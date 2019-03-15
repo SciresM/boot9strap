@@ -146,7 +146,7 @@ static void aes_setiv(const void *iv, u32 mode)
     }
 }
 
-static void __attribute__((optimize("O1"))) aes_advctr(void *ctr, u32 val, u32 mode)
+static void aes_advctr(void *ctr, u32 val, u32 mode)
 {
     u32 *ctr32 = (u32 *)ctr;
 
