@@ -42,7 +42,7 @@ u32 fileRead(void *dest, const char *path, u32 size, u32 maxSize)
 bool fileWrite(const void *buffer, const char *path, u32 size)
 {
     FIL file;
-    FRESULT result;
+    FRESULT result = FR_OK;
 
     switch(f_open(&file, path, FA_WRITE | FA_OPEN_ALWAYS))
     {
