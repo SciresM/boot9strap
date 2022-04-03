@@ -25,9 +25,7 @@
 .global _start
 _start:
     @ Disable interrupts and switch to supervisor mode (also clear flags)
-    mov r4, #0x13
-    orr r4, #0x1C0
-    msr cpsr_cxsf, r4
+    msr cpsr_cxsf, #0xD3
 
     @ Change the stack pointer
     ldr sp, =__stack_top__
@@ -54,7 +52,7 @@ _start:
     @ Set MPU permissions and cache settings
     ldr r0, =0xFFFF001D @ ffff0000 32k  | bootrom (unprotected part)
     ldr r1, =0xFFF0001B @ fff00000 16k  | dtcm
-    ldr r2, =0x01FF801D @ 01ff8000 32k  | itcm
+    ldr r2, =0x07FF801D @ 07ff8000 32k  | itcm
     ldr r3, =0x08000027 @ 08000000 1M   | arm9 mem
     ldr r4, =0x10000029 @ 10000000 2M   | io mem (ARM9 / first 2MB)
     ldr r5, =0x20000035 @ 20000000 128M | fcram

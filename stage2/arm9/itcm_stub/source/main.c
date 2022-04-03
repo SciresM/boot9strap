@@ -25,7 +25,7 @@
 void main(Firm *firm, bool isNand)
 {
     u32 argc;
-    char *argv[2];
+    char *argv[2] = {0};
     struct fb fbs[2] =
     {
         {

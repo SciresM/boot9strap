@@ -31,7 +31,8 @@
 
 /**************************AES****************************/
 #define REG_AESCNT          ((vu32 *)0x10009000)
-#define REG_AESBLKCNT       ((vu32 *)0x10009004)
+#define REG_AESMACBLKCNT    ((vu16 *)0x10009004)
+#define REG_AESBLKCNT       ((vu16 *)0x10009006)
 #define REG_AESWRFIFO       ((vu32 *)0x10009008)
 #define REG_AESRDFIFO       ((vu32 *)0x1000900C)
 #define REG_AESKEYSEL       ((vu8 *)0x10009010)
@@ -54,13 +55,16 @@
 #define AES_ECB_ENCRYPT_MODE    (7u << 27)
 #define AES_ALL_MODES           (7u << 27)
 
-#define AES_CNT_START           0x80000000
-#define AES_CNT_INPUT_ORDER     0x02000000
-#define AES_CNT_OUTPUT_ORDER    0x01000000
-#define AES_CNT_INPUT_ENDIAN    0x00800000
-#define AES_CNT_OUTPUT_ENDIAN   0x00400000
-#define AES_CNT_FLUSH_READ      0x00000800
-#define AES_CNT_FLUSH_WRITE     0x00000400
+#define AES_CNT_START           BIT(31)
+#define AES_CNT_IRQ_ENABLE      BIT(30)
+#define AES_CNT_INPUT_ORDER     BIT(25)
+#define AES_CNT_OUTPUT_ORDER    BIT(24)
+#define AES_CNT_INPUT_ENDIAN    BIT(23)
+#define AES_CNT_OUTPUT_ENDIAN   BIT(22)
+#define AES_CNT_RDFIFO_SIZE(n)  (((n)/16 - 1) << 14)
+#define AES_CNT_WRFIFO_SIZE(n)  ((4 - (n)/16) << 12)
+#define AES_CNT_FLUSH_READ      BIT(11)
+#define AES_CNT_FLUSH_WRITE     BIT(10)
 
 #define AES_INPUT_BE            (AES_CNT_INPUT_ENDIAN)
 #define AES_INPUT_LE            0
@@ -82,12 +86,10 @@
 #define REG_SHA_HASH        ((vu32 *)0x1000A040)
 #define REG_SHA_INFIFO      ((vu32 *)0x1000A080)
 
-#define SHA_CNT_STATE           0x00000003
-#define SHA_CNT_UNK2            0x00000004
-#define SHA_CNT_OUTPUT_ENDIAN   0x00000008
-#define SHA_CNT_MODE            0x00000030
-#define SHA_CNT_ENABLE          0x00010000
-#define SHA_CNT_ACTIVE          0x00020000
+#define SHA_CNT_STATE           (BIT(1) | BIT(0))
+#define SHA_CNT_IN_DMA_ENABLE   BIT(2)
+#define SHA_CNT_OUTPUT_ENDIAN   BIT(3)
+#define SHA_CNT_MODE            (3u << 4)
 
 #define SHA_HASH_READY      0x00000000
 #define SHA_NORMAL_ROUND    0x00000001
@@ -116,6 +118,7 @@
 #define ISDEVUNIT (CFG_UNITINFO != 0)
 
 void sha(void *res, const void *src, u32 size, u32 mode);
+void sha_dma(void *res, const void *src, u32 size, u32 mode);
 
 int ctrNandInit(void);
 int ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf);

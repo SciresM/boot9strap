@@ -11,3 +11,4 @@ stage2/arm11/out
 *.elf
 *.d
 .DS_Store
+.vscode

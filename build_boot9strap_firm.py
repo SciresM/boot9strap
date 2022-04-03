@@ -29,7 +29,7 @@ def build_b9s_firm(signature, is_dev=False, ntr_crypt=False):
     # Write FIRM header.
     b9s = b'FIRM'
     # Write (zero (boot priority)), ARM11 Entrypoint, ARM9 Entrypoint
-    b9s += struct.pack('<III', 0x00000000, 0x1FF80200, 0x08001000)
+    b9s += struct.pack('<III', 0x00000000, 0x1FF80200, 0x08000500)
     b9s += b'\x00' * 0x2C
     # Write version value
     b9s += b'\x03'

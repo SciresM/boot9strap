@@ -32,6 +32,7 @@
 #define REG_TIMER_CNT(i)    *(vu16 *)(0x10003002 + 4 * i)
 #define REG_TIMER_VAL(i)    *(vu16 *)(0x10003000 + 4 * i)
 
-void mcuPowerOff(void);
+void NORETURN mcuPowerOff(void);
 void wait(u64 amount);
 void error(const char *fmt, ...);
+void mcuSetInfoLedPattern(u8 r, u8 g, u8 b, u32 periodMs, bool smooth);

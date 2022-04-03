@@ -7,20 +7,32 @@
 #include "fatfs/ff.h"
 
 static FATFS fs;
+static bool sdMounted = false, nandMounted = false;
 
 bool mountSd(void)
 {
-    return f_mount(&fs, "0:", 1) == FR_OK;
+    if (!sdMounted)
+        sdMounted = f_mount(&fs, "0:", 1) == FR_OK;
+    return sdMounted;
 }
 
 void unmountSd(void)
 {
-    f_mount(NULL, "0:", 1);
+    if (sdMounted)
+        sdMounted = f_mount(NULL, "0:", 1) != FR_OK;
 }
 
 bool mountCtrNand(void)
 {
-    return f_mount(&fs, "1:", 1) == FR_OK && f_chdrive("1:") == FR_OK;
+    if (!nandMounted)
+        nandMounted = f_mount(&fs, "1:", 1) == FR_OK && f_chdrive("1:") == FR_OK;
+    return nandMounted;
+}
+
+void unmountCtrNand(void)
+{
+    if (nandMounted)
+        nandMounted = f_mount(NULL, "1:", 1) != FR_OK;
 }
 
 u32 fileRead(void *dest, const char *path, u32 size, u32 maxSize)

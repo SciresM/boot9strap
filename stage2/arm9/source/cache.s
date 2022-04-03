@@ -48,9 +48,9 @@ flushEntireDCache:
     mcr p15, 0, r1, c7, c10, 4              @ drain write buffer
     bx lr
 
-.global flushDCacheRange
-.type flushDCacheRange, %function
-flushDCacheRange:
+.global flushDCacheRangeImpl
+.type flushDCacheRangeImpl, %function
+flushDCacheRangeImpl:
     @ Implemented in bootROM at address 0xffff08a0
     add r1, r0, r1                      @ end address
     bic r0, #0x1f                       @ align source address to cache line size (32 bytes)
@@ -88,3 +88,10 @@ flushICacheRange:
         blo flush_icache_range_loop
 
     bx lr
+
+.global __wfi
+.type __wfi, %function
+__wfi:
+    mov r0, #0
+    mcr p15, 0, r0, c7, c0, 4
+    bx  lr

@@ -1,29 +1,12 @@
 /*
-*   This file is part of Luma3DS
-*   Copyright (C) 2016 Aurora Wright, TuxSH
-*
-*   This program is free software: you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License as published by
-*   the Free Software Foundation, either version 3 of the License, or
-*   (at your option) any later version.
-*
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU General Public License for more details.
-*
-*   You should have received a copy of the GNU General Public License
-*   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*   Additional Terms 7.b of GPLv3 applies to this file: Requiring preservation of specified
-*   reasonable legal notices or author attributions in that material or in the Appropriate Legal
-*   Notices displayed by works containing it.
+*   types.h
 */
 
 #pragma once
 
-#include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
 //Common data types
 typedef uint8_t u8;
@@ -35,11 +18,32 @@ typedef volatile u16 vu16;
 typedef volatile u32 vu32;
 typedef volatile u64 vu64;
 
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
+typedef volatile s8 vs8;
+typedef volatile s16 vs16;
+typedef volatile s32 vs32;
+typedef volatile s64 vs64;
+
 #define CFG9_SYSPROT9   (*(vu8 *)0x10000000)
 #define CFG9_SYSPROT11  (*(vu8 *)0x10000001)
+#define IRQ_IE          (*(vu32 *)0x10001000)
+#define IRQ_IF          (*(vu32 *)0x10001004)
+
+#define BIT(n) (1u<<(n))
 
 struct fb {
      u8 *top_left;
      u8 *top_right;
      u8 *bottom;
 };
+
+/*static inline void __wfi(void)
+{
+    u32 val = 0;
+    __asm__ __volatile__("mcr p15, 0, %0, c7, c0, 4" :: "r"(val) : "memory");
+}*/
+
+void __wfi(void); // in cache.s

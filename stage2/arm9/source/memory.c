@@ -30,3 +30,11 @@ void memset32(void *dest, u32 filler, u32 size)
     for(u32 i = 0; i < size / 4; i++)
         dest32[i] = filler;
 }
+
+void *xmemset(void *buf, int ch, size_t count)
+{
+    u8 *b = (u8 *)buf;
+    for (size_t i = 0; i < count; i++)
+        b[i] = (u8)ch;
+    return buf;
+}

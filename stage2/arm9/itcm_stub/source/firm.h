@@ -24,7 +24,7 @@
 
 #include "types.h"
 
-typedef struct __attribute__((packed))
+typedef struct
 {
     u32 offset;
     u8 *address;
@@ -33,7 +33,7 @@ typedef struct __attribute__((packed))
     u8 hash[0x20];
 } FirmSection;
 
-typedef struct __attribute__((packed))
+typedef struct
 {
     char magic[4];
     u32 reserved1;

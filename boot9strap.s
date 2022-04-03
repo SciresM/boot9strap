@@ -110,8 +110,8 @@ ldr pc, [pc, #-0x4]
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; stage 2: Load stage 2 payload to 0x08001000.
-.org 0x08001000
+; stage 2: Load stage 2 payload to 0x08000500 (use 0x100 bytes of padding to be safe).
+.org 0x08000500
 .area 0x10000
 .incbin "stage2/arm9/out/arm9.bin"
 .endarea

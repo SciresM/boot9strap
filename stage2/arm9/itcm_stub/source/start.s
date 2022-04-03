@@ -37,6 +37,15 @@ disableMpuAndJumpToEntrypoints:
     mov r6, r2
     mov r7, r3
 
+    @ Old versions of b9s used ITCM at 0x01FF8000 so we need to translate
+    @ the address contained in argv
+    ldm r5, {r0, r1}
+    sub r0, r0, #0x06000000
+    cmp r1, #0
+    subne r1, r1, #0x06000000
+    stm r5, {r0, r1}
+    sub r5, r5, #0x06000000
+
     bl flushCaches
 
     @ Disable caches / MPU

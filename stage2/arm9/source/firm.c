@@ -91,6 +91,7 @@ bool checkSectionHashes(Firm *firm)
 
         __attribute__((aligned(4))) u8 hash[0x20];
 
+        // Tired sha_dma, it's only about the same speed
         sha(hash, (u8 *)firm + section->offset, section->size, SHA_256_MODE);
 
         if(memcmp(hash, section->hash, 0x20) != 0)

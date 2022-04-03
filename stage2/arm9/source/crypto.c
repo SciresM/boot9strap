@@ -28,7 +28,9 @@
 #include "crypto.h"
 #include "memory.h"
 #include "alignedseqmemcpy.h"
-#include "fatfs/sdmmc/sdmmc.h"
+#include "fatfs/sdmmc/unprotboot9_sdmmc.h"
+#include "ndma.h"
+#include "cache.h"
 
 /****************************************************************
 *                  Crypto libs
@@ -197,7 +199,7 @@ static void aes_change_ctrmode(void *ctr, u32 fromMode, u32 toMode)
 
 static void aes_batch(void *dst, const void *src, u32 blockCount)
 {
-    *REG_AESBLKCNT = blockCount << 16;
+    *REG_AESBLKCNT = blockCount;
     *REG_AESCNT |=  AES_CNT_START;
 
     const u32 *src32    = (const u32 *)src;
@@ -233,6 +235,7 @@ static void aes(void *dst, const void *src, u32 blockCount, void *iv, u32 mode, 
     *REG_AESCNT =   mode |
                     AES_CNT_INPUT_ORDER | AES_CNT_OUTPUT_ORDER |
                     AES_CNT_INPUT_ENDIAN | AES_CNT_OUTPUT_ENDIAN |
+                    AES_CNT_RDFIFO_SIZE(16) | AES_CNT_WRFIFO_SIZE(16) |
                     AES_CNT_FLUSH_READ | AES_CNT_FLUSH_WRITE;
 
     u32 blocks;
@@ -276,6 +279,22 @@ static void sha_wait_idle()
     while(*REG_SHA_CNT & 1);
 }
 
+static void sha_finish(void *res, u32 mode)
+{
+    *REG_SHA_CNT = (*REG_SHA_CNT & ~SHA_NORMAL_ROUND) | SHA_FINAL_ROUND;
+
+    while(*REG_SHA_CNT & SHA_FINAL_ROUND);
+    sha_wait_idle();
+
+    u32 hashSize = SHA_256_HASH_SIZE;
+    if(mode == SHA_224_MODE)
+        hashSize = SHA_224_HASH_SIZE;
+    else if(mode == SHA_1_MODE)
+        hashSize = SHA_1_HASH_SIZE;
+
+    alignedseqmemcpy(res, (void *)REG_SHA_HASH, hashSize);
+}
+
 void sha(void *res, const void *src, u32 size, u32 mode)
 {
     sha_wait_idle();
@@ -293,19 +312,125 @@ void sha(void *res, const void *src, u32 size, u32 mode)
 
     sha_wait_idle();
     alignedseqmemcpy((void *)REG_SHA_INFIFO, src8, size);
+    sha_finish(res, mode);
+}
 
-    *REG_SHA_CNT = (*REG_SHA_CNT & ~SHA_NORMAL_ROUND) | SHA_FINAL_ROUND;
+void sha_dma(void *res, const void *src, u32 size, u32 mode)
+{
+    /*u32 srcAddr = (u32)src;
+    if (srcAddr >= 0x18000000)
+        *(vu8 *)srcAddr; // BootROM does this */
 
-    while(*REG_SHA_CNT & SHA_FINAL_ROUND);
     sha_wait_idle();
 
-    u32 hashSize = SHA_256_HASH_SIZE;
-    if(mode == SHA_224_MODE)
-        hashSize = SHA_224_HASH_SIZE;
-    else if(mode == SHA_1_MODE)
-        hashSize = SHA_1_HASH_SIZE;
+    volatile NdmaChannelRegisters *const chan = &REG_NDMA->channel[2];
+    chan->src_addr = (u32)src;
+    chan->dst_addr = (u32)REG_SHA_INFIFO;
+    chan->total_words = size/4;
+    chan->block_words = 64/4;
+    chan->cnt = NDMA_ENABLE | NDMA_NORMAL_MODE | NDMA_STARTUP_SHA_IN | NDMA_BURST_WORDS(64/4) |
+                NDMA_DST_UPDATE_MODE(NDMA_UPDATE_FIXED) | NDMA_SRC_UPDATE_MODE(NDMA_UPDATE_INC);
+    *REG_SHA_CNT = mode | SHA_CNT_OUTPUT_ENDIAN | SHA_CNT_IN_DMA_ENABLE | SHA_NORMAL_ROUND;
+    while (chan->cnt & NDMA_ENABLE);
+    sha_wait_idle();
+    sha_finish(res, mode);
+}
 
-    alignedseqmemcpy(res, (void *)REG_SHA_HASH, hashSize);
+/*****************************************************************/
+
+static u32 aesNumNandBlocks = 0;
+
+static s32 bromSdmmcReadWithDmaPrepareCb(u32 fifoAddr)
+{
+    // Check block alignment
+    const u32 aesFifoSize = (aesNumNandBlocks & 1) ? 16 : 32;
+    const u32 aesFifoSizeOut = aesFifoSize;
+
+    // SDMMC -> AES
+    volatile NdmaChannelRegisters *const chan0 = &REG_NDMA->channel[0];
+    volatile NdmaChannelRegisters *const chan1 = &REG_NDMA->channel[1];
+    
+    chan0->src_addr = (u32)fifoAddr;
+    chan0->dst_addr = (u32)REG_AESWRFIFO;
+    chan0->block_words = aesFifoSize/4;
+    chan0->cnt =    NDMA_ENABLE | NDMA_NORMAL_MODE | NDMA_STARTUP_SDIO1_TO_AES |
+                    NDMA_BURST_WORDS(aesFifoSize/4) | NDMA_DST_UPDATE_MODE(NDMA_UPDATE_FIXED) |
+                    NDMA_SRC_UPDATE_MODE(NDMA_UPDATE_FIXED);
+
+    // AES -> mem
+    chan1->src_addr = (u32)REG_AESRDFIFO;
+    // chan1->dst_addr already filled
+    chan1->block_words = aesFifoSizeOut/4;
+    chan1->cnt =    NDMA_ENABLE | NDMA_NORMAL_MODE | NDMA_STARTUP_AES_OUT |
+                    NDMA_BURST_WORDS(aesFifoSizeOut/4) | NDMA_DST_UPDATE_MODE(NDMA_UPDATE_INC) |
+                    NDMA_SRC_UPDATE_MODE(NDMA_UPDATE_FIXED);
+
+    *REG_AESCNT |=  AES_CNT_START | AES_CNT_IRQ_ENABLE | AES_CNT_RDFIFO_SIZE(aesFifoSizeOut) | AES_CNT_WRFIFO_SIZE(aesFifoSize) |
+                    AES_CNT_FLUSH_READ | AES_CNT_FLUSH_WRITE;
+
+    return 0;
+}
+
+static void bromSdmmcReadWithDmaAbortCb(void)
+{
+    REG_NDMA->channel[0].cnt &= ~NDMA_ENABLE;
+    REG_NDMA->channel[1].cnt &= ~NDMA_ENABLE;
+}
+
+static s32 aesReadNandWithDma(void *dst, u32 sectorOffset, u32 sectorCount, void *iv)
+{
+    u32 mode = AES_CTR_MODE;
+    u32 dstAddr = (u32)dst;
+
+    u32 blockCount = sectorCount * 32;
+    u32 blocks;
+    u32 ivMode = AES_INPUT_BE | AES_INPUT_NORMAL;
+
+    flushDCacheRange(dst, sectorCount * 0x200);
+
+    *REG_AESCNT =   mode |
+                    AES_CNT_INPUT_ORDER | AES_CNT_OUTPUT_ORDER |
+                    AES_CNT_INPUT_ENDIAN | AES_CNT_OUTPUT_ENDIAN;
+
+    volatile NdmaChannelRegisters *const chan0 = &REG_NDMA->channel[0];
+    volatile NdmaChannelRegisters *const chan1 = &REG_NDMA->channel[1];
+
+    while(blockCount != 0)
+    {
+        aes_setiv(iv, ivMode);
+
+        blocks = (blockCount >= 0xFFE0) ? 0xFFE0 : blockCount; // AES_MAX_BLOCKS rounded down to a sector (0x20 AES blocks)
+        *REG_AESBLKCNT = (u16)blocks;
+
+        chan0->cnt &= ~NDMA_ENABLE;
+        chan1->cnt &= ~NDMA_ENABLE;
+        chan0->total_words = blocks << 2;
+        chan1->total_words = blocks << 2;
+        chan1->dst_addr = dstAddr;
+
+        //Process the current batch
+        aesNumNandBlocks = blocks;
+        s32 res = unprotboot9_sdmmc_readrawsectors_setup(sectorOffset, blocks/32, NULL, bromSdmmcReadWithDmaPrepareCb, bromSdmmcReadWithDmaAbortCb);
+        if (res != 0) {
+            return res;
+        }
+
+        // Wait for transfer to complete. BootROM messes with the interrupt mask.
+        while (*REG_AESCNT & AES_CNT_START);
+        while (chan0->cnt & NDMA_ENABLE);
+        while (chan1->cnt & NDMA_ENABLE);
+
+        //Advance counter for CTR mode
+        aes_advctr(iv, blocks, ivMode);
+
+        dstAddr += blocks * AES_BLOCK_SIZE;
+        sectorOffset += blocks / 32;
+        blockCount -= blocks;
+    }
+
+    flushDCacheRange(dst, sectorCount * 0x200);
+
+    return 0;
 }
 
 /*****************************************************************/
@@ -319,7 +444,9 @@ int ctrNandInit(void)
     __attribute__((aligned(4))) u8 cid[AES_BLOCK_SIZE],
                                    shaSum[SHA_256_HASH_SIZE];
 
-    sdmmc_get_cid(1, (u32 *)cid);
+    unprotboot9_sdmmc_initdevice(unprotboot9_sdmmc_deviceid_nand);
+
+    memcpy(cid, (const void *)0x07FFCD84, 0x10);
     sha(shaSum, cid, sizeof(cid), SHA_256_MODE);
     memcpy(nandCtr, shaSum, sizeof(nandCtr));
 
@@ -329,10 +456,15 @@ int ctrNandInit(void)
     u8 __attribute__((aligned(4))) temp[0x200];
 
     //Read NCSD header
-    result = sdmmc_nand_readsectors(0, 1, temp);
+    result = unprotboot9_sdmmc_selectdevice(unprotboot9_sdmmc_deviceid_nand);
+    if (result != 0)
+        return result;
+
+    result = unprotboot9_sdmmc_readrawsectors(0, 1, temp);
 
     if(!result)
     {
+        if (memcmp(temp + 0x100, "NCSD", 4) != 0) {for(;;);}
         u32 partitionNum = 1; //TWL partitions need to be first
         for(u8 *partitionId = temp + 0x111; *partitionId != 1; partitionId++, partitionNum++);
 
@@ -343,6 +475,7 @@ int ctrNandInit(void)
 
         //Calculate final CTRNAND FAT offset
         if(!result) fatStart = ctrMbrOffset + *(u32 *)(temp + 0x1C6);
+        //if (fatStart * 0x200 != 0x0B930000) {for(;;);}
     }
 
     return result;
@@ -350,23 +483,24 @@ int ctrNandInit(void)
 
 int ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf)
 {
+    int result = unprotboot9_sdmmc_selectdevice(unprotboot9_sdmmc_deviceid_nand);
+    if (result != 0)
+        return result;
+
+    sector += fatStart;
+
     __attribute__((aligned(4))) u8 tmpCtr[sizeof(nandCtr)];
     memcpy(tmpCtr, nandCtr, sizeof(nandCtr));
-    aes_advctr(tmpCtr, ((sector + fatStart) * 0x200) / AES_BLOCK_SIZE, AES_INPUT_BE | AES_INPUT_NORMAL);
-
-    //Read
-    int result = sdmmc_nand_readsectors(sector + fatStart, sectorCount, outbuf);
-
-    //Decrypt
+    aes_advctr(tmpCtr, (sector * 0x200) / AES_BLOCK_SIZE, AES_INPUT_BE | AES_INPUT_NORMAL);
     aes_use_keyslot(nandSlot);
-    aes(outbuf, outbuf, sectorCount * 0x200 / AES_BLOCK_SIZE, tmpCtr, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
 
+    result = aesReadNandWithDma(outbuf, sector, sectorCount, tmpCtr);
     return result;
 }
 
 static inline void twlConsoleInfoInit(void)
 {
-    u64 twlConsoleId = ISDEVUNIT ? OTP_DEVCONSOLEID : (0x80000000ULL | (*(vu64 *)0x01FFB808 ^ 0x8C267B7B358A6AFULL));
+    u64 twlConsoleId = ISDEVUNIT ? OTP_DEVCONSOLEID : (0x80000000ULL | (*(vu64 *)0x07FFB808 ^ 0x8C267B7B358A6AFULL));
     CFG_TWLUNITINFO = CFG_UNITINFO;
     OTP_TWLCONSOLEID = twlConsoleId;
 
@@ -381,7 +515,7 @@ static inline void twlConsoleInfoInit(void)
     k1X[2] = (u32)(twlConsoleId >> 32);
     k1X[3] = (u32)twlConsoleId;
 
-    aes_setkey(2, (u8 *)0x01FFD398, AES_KEYX, AES_INPUT_TWLNORMAL);
+    aes_setkey(2, (u8 *)0x07FFD398, AES_KEYX, AES_INPUT_TWLNORMAL);
     if(CFG_TWLUNITINFO != 0)
     {
         __attribute__((aligned(4))) static const u8 key2YDev[AES_BLOCK_SIZE] = {0x3B, 0x06, 0x86, 0x57, 0x33, 0x04, 0x88, 0x11, 0x49, 0x04, 0x6B, 0x33, 0x12, 0x02, 0xAC, 0xF3},
@@ -397,12 +531,12 @@ static inline void twlConsoleInfoInit(void)
         u32 last3YWord = 0xE1A00005;
         __attribute__((aligned(4))) u8 key3YRetail[AES_BLOCK_SIZE];
 
-        memcpy(key3YRetail, (u8 *)0x01FFD3C8, 12);
+        memcpy(key3YRetail, (u8 *)0x07FFD3C8, 12);
         memcpy(key3YRetail + 12, &last3YWord, 4);
 
-        k3X[1] = *(vu32 *)0x01FFD3A8; //"NINT"
-        k3X[2] = *(vu32 *)0x01FFD3AC; //"ENDO"
-        aes_setkey(2, (u8 *)0x01FFD220, AES_KEYY, AES_INPUT_TWLNORMAL);
+        k3X[1] = *(vu32 *)0x07FFD3A8; //"NINT"
+        k3X[2] = *(vu32 *)0x07FFD3AC; //"ENDO"
+        aes_setkey(2, (u8 *)0x07FFD220, AES_KEYY, AES_INPUT_TWLNORMAL);
         aes_setkey(3, key3YRetail, AES_KEYY, AES_INPUT_TWLNORMAL);
     }
 }

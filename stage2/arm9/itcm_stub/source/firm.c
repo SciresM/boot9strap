@@ -23,14 +23,19 @@
 #include "firm.h"
 #include "memory.h"
 #include "cache.h"
+#include "ndma.h"
 
 void disableMpuAndJumpToEntrypoints(int argc, char **argv, void *arm11Entry, void *arm9Entry);
 
 void launchFirm(Firm *firm, int argc, char **argv)
 {
     //Copy FIRM sections to respective memory locations
+    //I have benchmarked this and NDMA is actually a little bit slower.
     for(u32 sectionNum = 0; sectionNum < 4; sectionNum++)
-        memcpy(firm->section[sectionNum].address, (u8 *)firm + firm->section[sectionNum].offset, firm->section[sectionNum].size);
+    {
+        const FirmSection *const section = &firm->section[sectionNum];
+        memcpy(section->address, (u8 *)firm + section->offset, section->size);
+    }
 
     disableMpuAndJumpToEntrypoints(argc, argv, firm->arm9Entry, firm->arm11Entry);
 

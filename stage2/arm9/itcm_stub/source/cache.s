@@ -54,3 +54,10 @@ flushCaches:
     mcr p15, 0, r1, c7, c5, 0
 
     bx lr
+
+.global __wfi
+.type __wfi, %function
+__wfi:
+    mov r0, #0
+    mcr p15, 0, r0, c7, c0, 4
+    bx  lr
