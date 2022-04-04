@@ -2,17 +2,20 @@
 *   main.c
 */
 
+#include <string.h>
+
 #include "types.h"
-#include "memory.h"
 #include "crypto.h"
 #include "i2c.h"
 #include "fs.h"
 #include "firm.h"
 #include "utils.h"
 #include "buttons.h"
-#include "../build/bundled.h"
 #include "fatfs/sdmmc/unprotboot9_sdmmc.h"
 #include "ndma.h"
+#include "cache.h"
+
+#include "chainloader.h"
 
 typedef enum FirmLoadStatus {
     FIRM_LOAD_OK = 0,
@@ -20,8 +23,8 @@ typedef enum FirmLoadStatus {
     FIRM_LOAD_CORRUPT,
 } FirmLoadStatus;
 
-static void (*const itcmStub)(Firm *firm, bool isNand) = (void (*const)(Firm *, bool))0x07FF8000;
 static volatile Arm11Operation *operation = (volatile Arm11Operation *)0x1FF80204;
+extern u8 __itcm_start__[], __itcm_lma__[], __itcm_bss_start__[], __itcm_end__[];
 
 static void invokeArm11Function(Arm11Operation op)
 {
@@ -39,6 +42,8 @@ static FirmLoadStatus loadFirm(Firm **outFirm)
         return rd == 0 ? FIRM_LOAD_CANT_READ : FIRM_LOAD_CORRUPT;
 
     bool isPreLockout = ((firmHeader->reserved2[0] & 2) != 0);
+    if ((CFG9_SYSPROT9 & 1) != 0 || (CFG9_SYSPROT11 & 1) != 0)
+        isPreLockout = false;
     Firm *firm;
     u32 maxFirmSize;
 
@@ -78,11 +83,15 @@ static void bootFirm(Firm *firm, bool isNand)
         I2C_writeReg(I2C_DEV_MCU, 0x22, 0x2A); //Turn on backlight
     }
 
-    memcpy((void *)itcmStub, itcm_stub_bin, itcm_stub_bin_size);
+    memcpy(__itcm_start__, __itcm_lma__, __itcm_bss_start__ - __itcm_start__);
+    memset(__itcm_bss_start__, 0, __itcm_end__ - __itcm_bss_start__);
 
     //Launch firm
     invokeArm11Function(PREPARE_ARM11_FOR_FIRMLAUNCH);
-    itcmStub(firm, isNand);
+    __dsb();
+
+    flushEntireDCache();
+    chainload(firm, isNand);
     __builtin_unreachable();
 }
 
@@ -129,7 +138,7 @@ static void displayStatus(FirmLoadStatus sdStatus, FirmLoadStatus nandStatus)
     }
 }
 
-void main(void)
+void arm9Main(void)
 {
     FirmLoadStatus sdStatus, nandStatus;
     Firm *firm = NULL;

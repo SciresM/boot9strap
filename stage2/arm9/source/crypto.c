@@ -26,11 +26,12 @@
 */
 
 #include "crypto.h"
-#include "memory.h"
 #include "alignedseqmemcpy.h"
 #include "fatfs/sdmmc/unprotboot9_sdmmc.h"
 #include "ndma.h"
 #include "cache.h"
+
+#include <string.h>
 
 /****************************************************************
 *                  Crypto libs
@@ -439,6 +440,8 @@ __attribute__((aligned(4))) static u8 nandCtr[AES_BLOCK_SIZE];
 static u8 nandSlot;
 static u32 fatStart = 0;
 
+#define ITCM_BASE 0x07FF8000u
+
 int ctrNandInit(void)
 {
     __attribute__((aligned(4))) u8 cid[AES_BLOCK_SIZE],
@@ -446,7 +449,7 @@ int ctrNandInit(void)
 
     unprotboot9_sdmmc_initdevice(unprotboot9_sdmmc_deviceid_nand);
 
-    memcpy(cid, (const void *)0x07FFCD84, 0x10);
+    memcpy(cid, (const void *)(ITCM_BASE + 0x4D84), 0x10);
     sha(shaSum, cid, sizeof(cid), SHA_256_MODE);
     memcpy(nandCtr, shaSum, sizeof(nandCtr));
 
@@ -500,7 +503,7 @@ int ctrNandRead(u32 sector, u32 sectorCount, u8 *outbuf)
 
 static inline void twlConsoleInfoInit(void)
 {
-    u64 twlConsoleId = ISDEVUNIT ? OTP_DEVCONSOLEID : (0x80000000ULL | (*(vu64 *)0x07FFB808 ^ 0x8C267B7B358A6AFULL));
+    u64 twlConsoleId = ISDEVUNIT ? OTP_DEVCONSOLEID : (0x80000000ULL | (*(vu64 *)(ITCM_BASE + 0x3808) ^ 0x8C267B7B358A6AFULL));
     CFG_TWLUNITINFO = CFG_UNITINFO;
     OTP_TWLCONSOLEID = twlConsoleId;
 
@@ -515,7 +518,7 @@ static inline void twlConsoleInfoInit(void)
     k1X[2] = (u32)(twlConsoleId >> 32);
     k1X[3] = (u32)twlConsoleId;
 
-    aes_setkey(2, (u8 *)0x07FFD398, AES_KEYX, AES_INPUT_TWLNORMAL);
+    aes_setkey(2, (u8 *)(ITCM_BASE + 0x5398), AES_KEYX, AES_INPUT_TWLNORMAL);
     if(CFG_TWLUNITINFO != 0)
     {
         __attribute__((aligned(4))) static const u8 key2YDev[AES_BLOCK_SIZE] = {0x3B, 0x06, 0x86, 0x57, 0x33, 0x04, 0x88, 0x11, 0x49, 0x04, 0x6B, 0x33, 0x12, 0x02, 0xAC, 0xF3},
@@ -531,12 +534,12 @@ static inline void twlConsoleInfoInit(void)
         u32 last3YWord = 0xE1A00005;
         __attribute__((aligned(4))) u8 key3YRetail[AES_BLOCK_SIZE];
 
-        memcpy(key3YRetail, (u8 *)0x07FFD3C8, 12);
+        memcpy(key3YRetail, (u8 *)(ITCM_BASE + 0x53C8), 12);
         memcpy(key3YRetail + 12, &last3YWord, 4);
 
-        k3X[1] = *(vu32 *)0x07FFD3A8; //"NINT"
-        k3X[2] = *(vu32 *)0x07FFD3AC; //"ENDO"
-        aes_setkey(2, (u8 *)0x07FFD220, AES_KEYY, AES_INPUT_TWLNORMAL);
+        k3X[1] = *(vu32 *)(ITCM_BASE + 0x53A8); //"NINT"
+        k3X[2] = *(vu32 *)(ITCM_BASE + 0x53AC); //"ENDO"
+        aes_setkey(2, (u8 *)(ITCM_BASE + 0x5220), AES_KEYY, AES_INPUT_TWLNORMAL);
         aes_setkey(3, key3YRetail, AES_KEYY, AES_INPUT_TWLNORMAL);
     }
 }

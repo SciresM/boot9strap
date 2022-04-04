@@ -2,8 +2,8 @@
 *   fs.c
 */
 
+#include <string.h>
 #include "fs.h"
-#include "memory.h"
 #include "fatfs/ff.h"
 
 static FATFS fs;

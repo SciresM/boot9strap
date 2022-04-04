@@ -1,5 +1,4 @@
 #include "types.h"
-#include "memory.h"
 
 #define BRIGHTNESS 0x39
 
@@ -128,7 +127,7 @@ static void waitBootromLocked(void)
     while(*(vu64 *)0x18000 != 0ULL);
 }
 
-void main(void)
+void arm11Main(void)
 {
     operation = ARM11_READY;
 
@@ -145,9 +144,10 @@ void main(void)
                 waitBootromLocked();
                 break;
             case PREPARE_ARM11_FOR_FIRMLAUNCH:
-                memcpy((void *)0x1FFFFC00, (void *)prepareForFirmlaunch, prepareForFirmlaunchSize);
                 *(vu32 *)0x1FFFFFFC = 0;
                 ((void (*)(u32, volatile Arm11Operation *))0x1FFFFC00)(ARM11_READY, &operation);
+                __builtin_unreachable();
+                break;
         }
 
         operation = ARM11_READY;

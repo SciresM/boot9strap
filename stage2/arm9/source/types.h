@@ -41,6 +41,12 @@ typedef enum
     ARM11_READY
 } Arm11Operation;
 
+struct fb {
+     u32 top_left;
+     u32 top_right;
+     u32 bottom;
+};
+
 /*static inline void __wfi(void)
 {
     u32 val = 0;
@@ -48,3 +54,4 @@ typedef enum
 }*/
 
 void __wfi(void); // in cache.s
+void __dsb(void); // in cache.s

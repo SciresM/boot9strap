@@ -1,6 +1,6 @@
 /*
 *   This file is part of Luma3DS
-*   Copyright (C) 2017 Aurora Wright, TuxSH
+*   Copyright (C) 2022 TuxSH
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -21,23 +21,52 @@
 */
 
 #include "firm.h"
-#include "memory.h"
-#include "cache.h"
-#include "ndma.h"
 
+// chainloader_entry.s
 void disableMpuAndJumpToEntrypoints(int argc, char **argv, void *arm11Entry, void *arm9Entry);
+void copyFirmSection(void *dst, const void *src, size_t size);
 
-void launchFirm(Firm *firm, int argc, char **argv)
+static void launchFirm(const Firm *firm, int argc, char **argv)
 {
     //Copy FIRM sections to respective memory locations
     //I have benchmarked this and NDMA is actually a little bit slower.
     for(u32 sectionNum = 0; sectionNum < 4; sectionNum++)
     {
         const FirmSection *const section = &firm->section[sectionNum];
-        memcpy(section->address, (u8 *)firm + section->offset, section->size);
+        copyFirmSection(section->address, (u8 *)firm + section->offset, section->size);
     }
 
     disableMpuAndJumpToEntrypoints(argc, argv, firm->arm9Entry, firm->arm11Entry);
 
     __builtin_unreachable();
+}
+
+void chainloaderMain(const Firm *firm, bool isNand)
+{
+    u32 argc;
+    char *argv[2] = {0};
+    struct fb fbs[2] =
+    {
+        {
+            .top_left  = 0x18300000,
+            .top_right = 0x18300000,
+            .bottom    = 0x18346500,
+        },
+        {
+            .top_left  = 0x18400000,
+            .top_right = 0x18400000,
+            .bottom    = 0x18446500,
+        },
+    };
+
+    argv[0] = isNand ? "nand:/boot.firm" : "sdmc:/boot.firm";
+
+    if(firm->reserved2[0] & 1)
+    {
+        argc = 2;
+        argv[1] = (char *)&fbs;
+    }
+    else argc = 1;
+
+    launchFirm(firm, argc, argv);
 }

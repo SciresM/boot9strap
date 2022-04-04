@@ -1,11 +1,10 @@
-.section    .text.alignedseqmemcpy, "ax", %progbits
+#include "asm_macros.s.h"
 .arm
-@ Align on cache line boundaries & make sure the loops don't cross them.
-.align      5
-.global     alignedseqmemcpy
-.type       alignedseqmemcpy, %function
-alignedseqmemcpy:
-    @ src=r1 and dst=r0 are expected to be 4-byte-aligned
+.cpu arm946e-s
+
+// Align on cache line boundaries & make sure the loops don't cross them.
+FUNCTION alignedseqmemcpy, .text, 5
+    // src=r1 and dst=r0 are expected to be 4-byte-aligned
     push    {r4-r10, lr}
 
     lsrs    r12, r2, #5
@@ -39,3 +38,4 @@ alignedseqmemcpy:
     strneb  r3, [r0], #1
 
     pop     {r4-r10, pc}
+END_FUNCTION
