@@ -1,3 +1,5 @@
+export VERSION_MINOR	:=	$(shell git describe --tags --match [0-9]* | cut -c2- | cut -f1 -d- | cut -f2 -d.)
+
 SUBFOLDERS	:= stage2/arm9 stage2/arm11
 BINS		:= stage2/arm9/arm9.bin stage2/arm11/arm11.bin
 
@@ -9,11 +11,11 @@ OUTSHAS		:= $(foreach f, $(OUTFILES), $(f).sha)
 
 all: boot9strap
 
-boot9strap: build_boot9strap_firm.py boot9stap.s $(SUBFOLDERS)
+boot9strap: build_boot9strap_firm.py boot9strap.s $(SUBFOLDERS)
 	@mkdir -p "out"
 	@mkdir -p "build"
 	@armips boot9strap.s
-	@python $^
+	@python build_boot9strap_firm.py $(VERSION_MINOR)
 
 clean:
 	@$(foreach dir, $(SUBFOLDERS), $(MAKE) -C $(dir) clean &&) true

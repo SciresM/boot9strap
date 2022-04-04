@@ -100,10 +100,11 @@ static void displayStatus(FirmLoadStatus sdStatus, FirmLoadStatus nandStatus)
 {
     static const u8 statusColors[][3] = {
         {   0, 255,   0 }, // Green (SD load OK)
-        { 255, 255,   0 }, // Yellow (SD FIRM not found/empty)
-        { 255, 100,   0 }, // Orange (SD FIRM corrupt)
-        { 255, 255, 255 }, // White (NAND FIRM not found/empty)
-        { 255,   0,   0 }, // Red (NAND FIRM corrupt)
+        { 255, 255,   0 }, // Yellow (SD FIRM not found/empty & NAND load OK)
+        { 255, 100,   0 }, // Orange (SD FIRM corrupt & NAND load OK)
+        { 255, 255, 255 }, // White (SD FIRM missing & NAND FIRM not found/empty)
+        { 255,   0, 255 }, // Magenta (SD FIRM missing & NAND FIRM corrupt)
+        { 255,   0,   0 }, // Red (SD FIRM corrupt & NAND FIRM corrupt)
     };
 
     const u8 *rgb;
@@ -112,8 +113,10 @@ static void displayStatus(FirmLoadStatus sdStatus, FirmLoadStatus nandStatus)
         rgb = statusColors[0];
     else if (nandStatus == FIRM_LOAD_OK)
         rgb = statusColors[(u32)sdStatus];
-    else
+    else if (sdStatus == FIRM_LOAD_CANT_READ)
         rgb = statusColors[2 + (u32)nandStatus];
+    else
+        rgb = statusColors[5];
 
     // If the NTRBOOT combo is held, if the SD FIRM is corrupt or if we can't boot, display the status
     bool ntrbootComboPressed = HID_PAD == NTRBOOT_BUTTONS;
@@ -135,6 +138,9 @@ static void displayStatus(FirmLoadStatus sdStatus, FirmLoadStatus nandStatus)
         // ie. it will blink wait_time/(2 * period)
         wait(2000);
         mcuSetInfoLedPattern(0, 0, 0, 0, false);
+        // The wait is needed here, in case we power off
+        // (at the very least 2ms, so the MCU notices the pattern change)
+        wait(50);
     }
 }
 

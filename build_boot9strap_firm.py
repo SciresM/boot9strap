@@ -1,5 +1,8 @@
 import binascii, hashlib, struct, sys, os.path
-from Crypto.Cipher import AES
+try:
+    from Crypto.Cipher import AES
+except ImportError:
+    from Cryptodome.Cipher import AES
 
 # Signatures
 perfect_signature = 'B6724531C448657A2A2EE306457E350A10D544B42859B0E5B0BED27534CCCC2A4D47EDEA60A7DD99939950A6357B1E35DFC7FAC773B7E12E7C1481234AF141B31CF08E9F62293AA6BAAE246C15095F8B78402A684D852C680549FA5B3F14D9E838A2FB9C09A15ABB40DCA25E40A3DDC1F58E79CEC901974363A946E99B4346E8A372B6CD55A707E1EAB9BEC0200B5BA0B661236A8708D704517F43C6C38EE9560111E1405E5E8ED356C49C4FF6823D1219AFAEEB3DF3C36B62BBA88FC15BA8648F9333FD9FC092B8146C3D908F73155D48BE89D72612E18E4AA8EB9B7FD2A5F7328C4ECBFB0083833CBD5C983A25CEB8B941CC68EB017CE87F5D793ACA09ACF7'
@@ -16,7 +19,7 @@ def encrypt_firm_section(section, iv, is_dev=False):
     aes = AES.new(binascii.unhexlify(key), AES.MODE_CBC, iv)
     return aes.encrypt(section)
 
-def build_b9s_firm(signature, is_dev=False, ntr_crypt=False):
+def build_b9s_firm(version, signature, is_dev=False, ntr_crypt=False):
     sections = ['build/code11.bin', 'build/code9.bin', 'build/NDMA.bin', 'build/dabrt.bin']
     section_datas = []
     load_addresses = [0x1FF80000, 0x08000200, 0x10002000, 0xC0000000]
@@ -32,7 +35,7 @@ def build_b9s_firm(signature, is_dev=False, ntr_crypt=False):
     b9s += struct.pack('<III', 0x00000000, 0x1FF80200, 0x08000500)
     b9s += b'\x00' * 0x2C
     # Write version value
-    b9s += b'\x03'
+    b9s += bytes(bytearray([version]))
     # Write boot9strap magic value
     b9s += b'B9S'
     ofs = 0x200
@@ -52,10 +55,11 @@ def build_b9s_firm(signature, is_dev=False, ntr_crypt=False):
     return b9s
 
 def main(argc, argv):
+    version = int(argv[1]) if argc >= 2 else 4
     firms = ['out/boot9strap.firm', 'out/boot9strap_dev.firm', 'out/boot9strap_ntr.firm', 'out/boot9strap_ntr_dev.firm']
     sigs = [perfect_signature, dev_perfect_signature, ntr_perfect_signature, dev_ntr_perfect_signature]
     for firm, sig in zip(firms, sigs):
-        b9s = build_b9s_firm(sig, is_dev='dev' in firm, ntr_crypt='ntr' in firm)
+        b9s = build_b9s_firm(version, sig, is_dev='dev' in firm, ntr_crypt='ntr' in firm)
         if type(b9s) != bytes:
             return
         with open(firm, 'wb') as f:

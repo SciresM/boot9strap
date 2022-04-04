@@ -9,9 +9,6 @@ endif
 TOPDIR ?= $(CURDIR)
 include $(DEVKITARM)/base_rules
 
-
-export VERSION_MINOR	:=	$(shell git describe --tags --match [0-9]* | cut -c2- | cut -f1 -d- | cut -f2 -d.)
-
 ifeq ($(strip $(VERSION_MINOR)),)
 	export VERSION_MINOR	:=	4
 endif
