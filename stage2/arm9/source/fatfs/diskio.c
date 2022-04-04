@@ -1,5 +1,5 @@
 /*-----------------------------------------------------------------------*/
-/* Low level disk I/O module skeleton for FatFs     (C)ChaN, 2014        */
+/* Low level disk I/O module SKELETON for FatFs     (C)ChaN, 2019        */
 /*-----------------------------------------------------------------------*/
 /* If a working storage control module is available, it should be        */
 /* attached to the FatFs via a glue function rather than modifying it.   */
@@ -7,8 +7,9 @@
 /* storage control modules to the FatFs module with a defined API.       */
 /*-----------------------------------------------------------------------*/
 
-#include "diskio.h"		/* FatFs lower layer API */
-//#include "sdmmc/sdmmc.h"
+#include "ff.h"			/* Obtains integer types */
+#include "diskio.h"		/* Declarations of disk functions */
+
 #include "../crypto.h"
 #include "sdmmc/unprotboot9_sdmmc.h"
 #include "../ndma.h"
@@ -18,19 +19,18 @@
 #define SDCARD  0
 #define CTRNAND 1
 
+
 /*-----------------------------------------------------------------------*/
 /* Get Drive Status                                                      */
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status (
-	__attribute__((unused))
 	BYTE pdrv		/* Physical drive nmuber to identify the drive */
 )
 {
+	(void)pdrv;
 	return RES_OK;
 }
-
-
 
 /*-----------------------------------------------------------------------*/
 /* Inidialize a Drive                                                    */
@@ -83,7 +83,7 @@ static void bromSdmmcReadWithDmaAbortCb(void)
 DRESULT disk_read (
 	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
 	BYTE *buff,		/* Data buffer to store read data */
-	DWORD sector,	/* Sector address in LBA */
+	LBA_t sector,	/* Start sector in LBA */
 	UINT count		/* Number of sectors to read */
 )
 {
@@ -99,13 +99,13 @@ DRESULT disk_read (
 				chan0->cnt &= ~NDMA_ENABLE;
 				chan0->total_words = 512 * count / 4;
 				chan0->dst_addr = (u32)buff;
-				res = unprotboot9_sdmmc_readrawsectors_setup(sector, count, NULL, bromSdmmcReadWithDmaPrepareCb, bromSdmmcReadWithDmaAbortCb);
+				res = unprotboot9_sdmmc_readrawsectors_setup((u32)sector, count, NULL, bromSdmmcReadWithDmaPrepareCb, bromSdmmcReadWithDmaAbortCb);
 				while (chan0->cnt & NDMA_ENABLE);
 				flushDCacheRange(buff, 512 * count);
 			}
 			break;
 		case CTRNAND:
-			res = ctrNandRead(sector, count, buff);
+			res = ctrNandRead((u32)sector, count, buff);
 			break;
 		default:
 			res = -1;
@@ -120,38 +120,37 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_WRITE
+#if FF_FS_READONLY == 0
+
 DRESULT disk_write (
-	__attribute__((unused))
 	BYTE pdrv,			/* Physical drive nmuber to identify the drive */
-	__attribute__((unused))
-	const BYTE *buff,       	/* Data to be written */
-	__attribute__((unused))
-	DWORD sector,		/* Sector address in LBA */
-	__attribute__((unused))
+	const BYTE *buff,	/* Data to be written */
+	LBA_t sector,		/* Start sector in LBA */
 	UINT count			/* Number of sectors to write */
 )
 {
-    return RES_OK;//(pdrv == SDCARD && (*(vu16 *)(SDMMC_BASE + REG_SDSTATUS0) & TMIO_STAT0_WRPROTECT) != 0 && !sdmmc_sdcard_writesectors(sector, count, buff)) ? RES_OK : RES_PARERR;
+	(void)pdrv;
+	(void)buff;
+	(void)sector;
+	(void)count;
+	return RES_OK;
 }
-#endif
 
+#endif
 
 
 /*-----------------------------------------------------------------------*/
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
-#if _USE_IOCTL
 DRESULT disk_ioctl (
-	__attribute__((unused))
 	BYTE pdrv,		/* Physical drive nmuber (0..) */
-	__attribute__((unused))
 	BYTE cmd,		/* Control code */
-	__attribute__((unused))
 	void *buff		/* Buffer to send/receive control data */
 )
 {
+	(void)pdrv;
+	(void)cmd;
+	(void)buff;
     return cmd == CTRL_SYNC ? RES_OK : RES_PARERR;
 }
-#endif
