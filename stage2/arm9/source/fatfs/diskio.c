@@ -55,6 +55,9 @@ DSTATUS disk_initialize (
 				res = ctrNandInit();
 			nandInitialized = res == 0;
 			break;
+		default:
+			res = -1;
+			break;
 	}
 
 	return res == 0 ? 0 : STA_NOINIT;
