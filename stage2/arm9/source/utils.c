@@ -88,7 +88,7 @@ void wait(u64 amount)
 // Max 500ms
 static inline u8 mcuPeriodMsToTick(u32 periodMs)
 {
-    // 512MHz
+    // 512Hz
     u32 res = 512u * periodMs / 1000u;
     res = res < 2 ? 1 : res - 1; // res not allowed to be zero
     res = res > 255 ? 255 : res; // res can't exceed 255
