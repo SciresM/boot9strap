@@ -33,9 +33,38 @@ static void invokeArm11Function(Arm11Operation op)
     while(*operation != ARM11_READY); 
 }
 
+const char *getFirmNameFromBootOrder(void) 
+{
+    const char* bootOrder = NULL;
+    if (fileExists("boot_order.txt"))
+        bootOrder = "boot_order.txt";
+    else if (fileExists("bootorder.txt"))
+        bootOrder = "bootorder.txt";
+    
+    if (bootOrder)
+    {
+        static char line[2048];
+        u32 lineNumber = 0;
+        u32 bytesRead;
+
+        while ((bytesRead = fileReadLine(line, bootOrder, lineNumber, sizeof(line))) > 0)
+        {
+            line[bytesRead] = '\0';
+
+            if (fileExists(line))
+                return line;
+
+            lineNumber++;
+        }
+    }
+
+    return "boot.firm";
+}
+
 static FirmLoadStatus loadFirm(Firm **outFirm)
 {
-    static const char *firmName = "boot.firm";
+    const char *firmName = getFirmNameFromBootOrder();
+
     Firm *firmHeader = (Firm *)0x080A0000;
     u32 rd = fileRead(firmHeader, firmName, 0x200, 0);
     if (rd != 0x200)

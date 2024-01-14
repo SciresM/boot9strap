@@ -82,3 +82,61 @@ bool fileWrite(const void *buffer, const char *path, u32 size)
             return false;
     }
 }
+
+bool fileExists(const char* path)
+{
+    FIL file;
+    if(f_open(&file, path, FA_READ) != FR_OK) return false;   
+    f_close(&file);
+    return true;
+}
+
+u32 fileReadLine(char *dest, const char *path, u32 lineNum, u32 maxSize)
+{
+    FIL fil;
+    FRESULT fr;
+    UINT br;
+    u32 totalRead = 0;
+    u32 currentLine = 0;
+    bool lineContentStarted = false;
+    bool endOfFile = false;
+
+    fr = f_open(&fil, path, FA_READ);
+    if (fr != FR_OK)
+        return 0;
+
+    while (!endOfFile)
+    {
+        char c;
+        fr = f_read(&fil, &c, 1, &br);
+        
+        if (fr != FR_OK || br == 0)
+        {
+            endOfFile = true;
+            if (currentLine != lineNum || !lineContentStarted) 
+                break;
+        }
+
+        if (c == '\n' || c == '\r')
+        {
+            if (currentLine == lineNum)
+            {
+                if (!lineContentStarted) 
+                    totalRead = 1;
+                break;
+            }
+            currentLine++;
+            lineContentStarted = false;
+        }
+        else if (currentLine == lineNum && totalRead < maxSize - 1)
+        {
+            dest[totalRead++] = c;
+            lineContentStarted = true;
+        }
+    }
+
+    dest[totalRead] = '\0';
+    f_close(&fil);
+
+    return totalRead;
+}
